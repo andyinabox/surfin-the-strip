@@ -1,3 +1,3 @@
-# centered
+# surfin' the strip
 
 
