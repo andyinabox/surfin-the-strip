@@ -8,7 +8,7 @@
 
 module.exports = function(THREE) {
 
-	THREE.ParametricGeometries = {
+	var ParametricGeometries = {
 
 		klein: function (v, u) {
 			u *= Math.PI;
@@ -83,7 +83,7 @@ module.exports = function(THREE) {
 	 *
 	 *********************************************/
 
-	THREE.ParametricGeometries.TubeGeometry = function(path, segments, radius, segmentsRadius, closed, debug) {
+	ParametricGeometries.TubeGeometry = function(path, segments, radius, segmentsRadius, closed, debug) {
 
 		this.path = path;
 		this.segments = segments || 64;
@@ -151,7 +151,7 @@ module.exports = function(THREE) {
 
 	};
 
-	THREE.ParametricGeometries.TubeGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.TubeGeometry.prototype = Object.create( THREE.Geometry.prototype );
 
 
 	 /*********************************************
@@ -159,7 +159,7 @@ module.exports = function(THREE) {
 	  * Parametric Replacement for TorusKnotGeometry
 	  *
 	  *********************************************/
-	THREE.ParametricGeometries.TorusKnotGeometry = function ( radius, tube, segmentsR, segmentsT, p, q, heightScale ) {
+	ParametricGeometries.TorusKnotGeometry = function ( radius, tube, segmentsR, segmentsT, p, q, heightScale ) {
 
 		var scope = this;
 
@@ -196,12 +196,12 @@ module.exports = function(THREE) {
 		var radiusSegments = segmentsT;
 		var extrudePath = new TorusKnotCurve();
 
-		THREE.ParametricGeometries.TubeGeometry.call( this, extrudePath, segments, tube, radiusSegments, true, false );
+		ParametricGeometries.TubeGeometry.call( this, extrudePath, segments, tube, radiusSegments, true, false );
 
 
 	};
 
-	THREE.ParametricGeometries.TorusKnotGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.TorusKnotGeometry.prototype = Object.create( THREE.Geometry.prototype );
 
 
 	 /*********************************************
@@ -209,7 +209,7 @@ module.exports = function(THREE) {
 	  * Parametric Replacement for SphereGeometry
 	  *
 	  *********************************************/
-	THREE.ParametricGeometries.SphereGeometry = function(size, u, v) {
+	ParametricGeometries.SphereGeometry = function(size, u, v) {
 
 		function sphere(u, v) {
 			u *= Math.PI;
@@ -227,7 +227,7 @@ module.exports = function(THREE) {
 
 	};
 
-	THREE.ParametricGeometries.SphereGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.SphereGeometry.prototype = Object.create( THREE.Geometry.prototype );
 
 
 	 /*********************************************
@@ -236,7 +236,7 @@ module.exports = function(THREE) {
 	  *
 	  *********************************************/
 
-	THREE.ParametricGeometries.PlaneGeometry = function(width, depth, segmentsWidth, segmentsDepth) {
+	ParametricGeometries.PlaneGeometry = function(width, depth, segmentsWidth, segmentsDepth) {
 
 		function plane(u, v) {
 
@@ -251,7 +251,9 @@ module.exports = function(THREE) {
 
 	};
 
-	THREE.ParametricGeometries.PlaneGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.PlaneGeometry.prototype = Object.create( THREE.Geometry.prototype );
+
+	return ParametricGeometries
 
 }
 },{}],2:[function(require,module,exports){
@@ -267,12 +269,16 @@ var equirect = require('google-panorama-equirectangular')
 var panorama = require('google-panorama-by-location')
 var createOrbitViewer = require('three-orbit-viewer')(THREE)
 var getBestZoom = require('./max-ram-zoom')
-
-require('./ParametricGeometries.js')(THREE);
+var ParametricGeometries = require('./ParametricGeometries.js')(THREE);
+var streetview = require('awesome-streetview')
 
 GoogleMaps.KEY = 'AIzaSyCuKjnJWCoUMRLbVFNEkJoFVD0I73u_xJo';
 
 GoogleMaps.load(function(google) {
+
+var img = new Image();
+img.src = 'assets/map.png';
+
 
 var app = createOrbitViewer({
   clearColor: 0x000000,
@@ -288,42 +294,46 @@ texture.generateMipmap = false
 // transparent canvas to start (white)
 var canvas = document.createElement('canvas')
 texture.needsUpdate = true
-texture.image = canvas
+texture.image = img
+img.onload = function() {
+  texture.needsUpdate = true;
+}
+
 
 // add a double-sided sphere
 // var geo = new THREE.SphereGeometry(1, 84, 84)
-geo = new THREE.ParametricGeometry( THREE.ParametricGeometries.mobius, 40, 40 );
+geo = new THREE.ParametricGeometry( ParametricGeometries.mobius3d, 40, 40 );
 var mat = new THREE.MeshBasicMaterial({
   map: texture,
   side: THREE.DoubleSide
 })
-var sphere = new THREE.Mesh(geo, mat)
-app.scene.add(sphere)
+var mobius = new THREE.Mesh(geo, mat)
+app.scene.add(mobius)
 
 // flip the texture along X axis
-sphere.scale.x = -1
+// sphere.scale.x = -1
 
-var location = [78.235865,15.4900308]
-panorama(location, {radius: 1000}, function (err, result) {
-  if (err) throw err
+// var location = [78.235865,15.4900308]
+// panorama(streetview(), {radius: 1000}, function (err, result) {
+//   if (err) throw err
 
-  // load the equirectangular image
-  equirect(result.id, {
-    tiles: result.tiles,
-    canvas: canvas,
-    crossOrigin: 'Anonymous',
-    zoom: getBestZoom()
-  })
-    .on('complete', function (image) {
-      texture.needsUpdate = true
-    })
-    .on('progress', function (ev) {
-      texture.needsUpdate = true
-    })
-})
+//   // load the equirectangular image
+//   equirect(result.id, {
+//     tiles: result.tiles,
+//     canvas: canvas,
+//     crossOrigin: 'Anonymous',
+//     zoom: getBestZoom()
+//   })
+//     .on('complete', function (image) {
+//       texture.needsUpdate = true
+//     })
+//     .on('progress', function (ev) {
+//       texture.needsUpdate = true
+//     })
+// })
 
 });
-},{"./ParametricGeometries.js":1,"./max-ram-zoom":3,"google-maps":6,"google-panorama-by-location":7,"google-panorama-equirectangular":9,"three":27,"three-orbit-viewer":16}],3:[function(require,module,exports){
+},{"./ParametricGeometries.js":1,"./max-ram-zoom":3,"awesome-streetview":4,"google-maps":10,"google-panorama-by-location":11,"google-panorama-equirectangular":13,"three":31,"three-orbit-viewer":20}],3:[function(require,module,exports){
 var getWebGL = require('webgl-context')
 
 // iOS is restricted to 3-5MP canvas elements in RAM
@@ -341,7 +351,73 @@ function getMaxTextureSize (gl) {
   return gl.getParameter(gl.MAX_TEXTURE_SIZE)
 }
 
-},{"webgl-context":28}],4:[function(require,module,exports){
+},{"webgl-context":32}],4:[function(require,module,exports){
+var uniqueRandomArray = require('unique-random-array')
+var locations = require('./locations.json')
+
+module.exports = uniqueRandomArray(locations)
+module.exports.locations = locations
+
+},{"./locations.json":5,"unique-random-array":6}],5:[function(require,module,exports){
+module.exports=[
+  [-26.938312,-68.74491499999999],
+  [60.534114,-149.55007899999998],
+  [60.070409,6.542388999999957],
+  [30.184983,-84.72466199999997],
+  [36.252972,136.90053699999999],
+  [48.865937,2.312376],
+  [27.814125,86.713193],
+  [36.2381539,137.9683151],
+  [64.0444798,-16.1711884],
+  [42.658402,11.633269],
+  [30.3248983,35.4471292],
+  [47.51075,10.390309],
+  [53.043081,57.064946],
+  [-8.4226166,115.3124971],
+  [35.659607,139.700378],
+  [50.087586,14.421231],
+  [-13.165713,-72.545542],
+  [41.403286,2.174673],
+  [-14.251967,-170.689851],
+  [33.461503,126.939297],
+  [-64.731988,-62.594564],
+  [27.17557,78.041462],
+  [68.19649,13.53183],
+  [53.2783229,107.3506844],
+  [59.9387245,30.3163621],
+  [40.4900264,-75.0729199],
+  [14.5841104,120.9799109],
+  [17.5707683,120.3886023],
+  [10.6422373,122.2358045],
+  [18.0619395,120.5205914],
+  [17.5713349,120.3887765],
+  [0.203972,37.452974],
+  [-1.3766622,36.7743556]
+]
+
+},{}],6:[function(require,module,exports){
+'use strict';
+var uniqueRandom = require('unique-random');
+
+module.exports = function (arr) {
+	var rand = uniqueRandom(0, arr.length - 1);
+
+	return function () {
+		return arr[rand()];
+	};
+};
+
+},{"unique-random":7}],7:[function(require,module,exports){
+'use strict';
+module.exports = function (min, max) {
+	var prev;
+	return function rand() {
+		var num = Math.floor(Math.random() * (max - min + 1) + min);
+		return prev = num === prev && min !== max ? rand() : num;
+	};
+};
+
+},{}],8:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -641,7 +717,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],5:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -737,7 +813,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],6:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function(root, factory) {
 
 	if (root === null) {
@@ -958,7 +1034,7 @@ process.umask = function() { return 0; };
 
 });
 
-},{}],7:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /*globals google*/
 var assign = require('object-assign')
 
@@ -1015,7 +1091,7 @@ module.exports = function panoramaByLocation (location, opt, cb) {
   }
 }
 
-},{"object-assign":8}],8:[function(require,module,exports){
+},{"object-assign":12}],12:[function(require,module,exports){
 'use strict';
 /* eslint-disable no-unused-vars */
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -1100,7 +1176,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (process){
 var getTiles = require('./lib/image-tiles')
 var loader = require('async-image-loader')
@@ -1159,7 +1235,7 @@ function loadEquirectangular (id, opt) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/image-tiles":10,"_process":5,"async-image-loader":11,"events":4}],10:[function(require,module,exports){
+},{"./lib/image-tiles":14,"_process":9,"async-image-loader":15,"events":8}],14:[function(require,module,exports){
 var getTileData = require('google-panorama-tiles')
 var getUrl = require('google-panorama-url')
 
@@ -1189,7 +1265,7 @@ function getPanoTileImages (id, zoom, tiles) {
   return data
 }
 
-},{"google-panorama-tiles":14,"google-panorama-url":15}],11:[function(require,module,exports){
+},{"google-panorama-tiles":18,"google-panorama-url":19}],15:[function(require,module,exports){
 (function (process){
 var each = require('async-each')
 var loadImage = require('load-img')
@@ -1238,7 +1314,7 @@ function asyncImages (data, opt, cb) {
 }
 
 }).call(this,require('_process'))
-},{"_process":5,"async-each":12,"events":4,"load-img":13}],12:[function(require,module,exports){
+},{"_process":9,"async-each":16,"events":8,"load-img":17}],16:[function(require,module,exports){
 // async-each MIT license (by Paul Miller from http://paulmillr.com).
 (function(globals) {
   'use strict';
@@ -1278,7 +1354,7 @@ function asyncImages (data, opt, cb) {
   }
 })(this);
 
-},{}],13:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 module.exports = loadImage;
 function loadImage (src, opt, callback) {
   if (typeof opt === 'function') {
@@ -1312,7 +1388,7 @@ function loadImage (src, opt, callback) {
   return el;
 }
 
-},{}],14:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 // Much inspired by:
 // https://github.com/spite/PanomNom.js
 
@@ -1361,7 +1437,7 @@ function equirect (zoom, data) {
   }
 }
 
-},{}],15:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 module.exports = streetViewUrl
 function streetViewUrl (panoId, opt) {
   opt = opt || {}
@@ -1373,7 +1449,7 @@ function streetViewUrl (panoId, opt) {
   return 'https://geo0.ggpht.com/cbk?cb_client=maps_sv.tactile&authuser=0&hl=en&panoid=' + panoId + '&output=tile&x=' + x + '&y=' + y + '&zoom=' + zoom + '&nbt&fover=2'
 }
 
-},{}],16:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var createApp = require('canvas-app')
 var createControls = require('three-orbit-controls')
 var Emitter = require('events/')
@@ -1458,13 +1534,13 @@ module.exports = function(THREE) {
         return emitter
     }
 }
-},{"as-number":17,"canvas-app":18,"events/":24,"three-orbit-controls":25,"xtend":26}],17:[function(require,module,exports){
+},{"as-number":21,"canvas-app":22,"events/":28,"three-orbit-controls":29,"xtend":30}],21:[function(require,module,exports){
 module.exports = function numtype(num, def) {
 	return typeof num === 'number'
 		? num 
 		: (typeof def === 'number' ? def : 0)
 }
-},{}],18:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var isGL = require('is-webgl-context');
 var getGL = require('webgl-context');
 var debounce = require('debounce');
@@ -1697,7 +1773,7 @@ CanvasApp.prototype.resize = function(width, height) {
 };
 
 module.exports = CanvasApp;
-},{"add-event-listener":19,"debounce":20,"is-webgl-context":22,"webgl-context":23}],19:[function(require,module,exports){
+},{"add-event-listener":23,"debounce":24,"is-webgl-context":26,"webgl-context":27}],23:[function(require,module,exports){
 addEventListener.removeEventListener = removeEventListener
 addEventListener.addEventListener = addEventListener
 
@@ -1745,7 +1821,7 @@ function oldIEDetach(el, eventName, listener, useCapture) {
   el.detachEvent('on' + eventName, listener)
 }
 
-},{}],20:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -1800,14 +1876,14 @@ module.exports = function debounce(func, wait, immediate){
   };
 };
 
-},{"date-now":21}],21:[function(require,module,exports){
+},{"date-now":25}],25:[function(require,module,exports){
 module.exports = Date.now || now
 
 function now() {
     return new Date().getTime()
 }
 
-},{}],22:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 /*globals WebGL2RenderingContext,WebGLRenderingContext*/
 module.exports = function isWebGLContext (ctx) {
   if (!ctx) return false
@@ -1826,7 +1902,7 @@ module.exports = function isWebGLContext (ctx) {
   return false
 }
 
-},{}],23:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 module.exports = function(opts) {
     opts = opts||{};
     var canvas = opts.canvas || document.createElement("canvas");
@@ -1843,9 +1919,9 @@ module.exports = function(opts) {
     }
     return gl;
 };
-},{}],24:[function(require,module,exports){
-arguments[4][4][0].apply(exports,arguments)
-},{"dup":4}],25:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],29:[function(require,module,exports){
 module.exports = function(THREE) {
     var MOUSE = THREE.MOUSE
     if (!MOUSE)
@@ -2527,7 +2603,7 @@ module.exports = function(THREE) {
     OrbitControls.prototype.constructor = OrbitControls;
     return OrbitControls;
 }
-},{}],26:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -2548,7 +2624,7 @@ function extend() {
     return target
 }
 
-},{}],27:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**
@@ -44070,14 +44146,14 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-},{}],28:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var getContext = require('get-canvas-context')
 
 module.exports = function getWebGLContext (opt) {
   return getContext('webgl', opt)
 }
 
-},{"get-canvas-context":29}],29:[function(require,module,exports){
+},{"get-canvas-context":33}],33:[function(require,module,exports){
 module.exports = getCanvasContext
 function getCanvasContext (type, opts) {
   if (typeof type !== 'string') {
