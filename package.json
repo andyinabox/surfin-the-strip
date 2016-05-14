@@ -1,0 +1,35 @@
+{
+  "name": "centered",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "budo index.js -H localhost --live --open --css styles.css -- -t glslify",
+    "build": "budo-demo index.js -c styles.css -m -- -t glslify",
+    "deploy": "npm run build; gh-pages -d dist; npm run clean",
+    "clean": "rm -r dist"
+  },
+  "author": {
+    "name": "Andy Dayton",
+    "email": "amdayton@gmail.com",
+    "url": "http://andydayton.com/"
+  },
+  "dependencies": {
+    "a-big-triangle": "~1.0.2",
+    "gl-now": "~1.4.0",
+    "gl-shader": "~4.1.1",
+    "google-maps": "^3.2.1"
+  },
+  "devDependencies": {
+    "glslify": "~5.0.0",
+    "budo": "~7.1.0",
+    "budo-demo": "^0.1.1",
+    "gh-pages": "^0.11.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/andyinabox/centered.git"
+  },
+  "homepage": "https://github.com/andyinabox/centered"
+}
