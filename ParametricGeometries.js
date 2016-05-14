@@ -7,7 +7,7 @@
 
 module.exports = function(THREE) {
 
-	THREE.ParametricGeometries = {
+	var ParametricGeometries = {
 
 		klein: function (v, u) {
 			u *= Math.PI;
@@ -82,7 +82,7 @@ module.exports = function(THREE) {
 	 *
 	 *********************************************/
 
-	THREE.ParametricGeometries.TubeGeometry = function(path, segments, radius, segmentsRadius, closed, debug) {
+	ParametricGeometries.TubeGeometry = function(path, segments, radius, segmentsRadius, closed, debug) {
 
 		this.path = path;
 		this.segments = segments || 64;
@@ -150,7 +150,7 @@ module.exports = function(THREE) {
 
 	};
 
-	THREE.ParametricGeometries.TubeGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.TubeGeometry.prototype = Object.create( THREE.Geometry.prototype );
 
 
 	 /*********************************************
@@ -158,7 +158,7 @@ module.exports = function(THREE) {
 	  * Parametric Replacement for TorusKnotGeometry
 	  *
 	  *********************************************/
-	THREE.ParametricGeometries.TorusKnotGeometry = function ( radius, tube, segmentsR, segmentsT, p, q, heightScale ) {
+	ParametricGeometries.TorusKnotGeometry = function ( radius, tube, segmentsR, segmentsT, p, q, heightScale ) {
 
 		var scope = this;
 
@@ -195,12 +195,12 @@ module.exports = function(THREE) {
 		var radiusSegments = segmentsT;
 		var extrudePath = new TorusKnotCurve();
 
-		THREE.ParametricGeometries.TubeGeometry.call( this, extrudePath, segments, tube, radiusSegments, true, false );
+		ParametricGeometries.TubeGeometry.call( this, extrudePath, segments, tube, radiusSegments, true, false );
 
 
 	};
 
-	THREE.ParametricGeometries.TorusKnotGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.TorusKnotGeometry.prototype = Object.create( THREE.Geometry.prototype );
 
 
 	 /*********************************************
@@ -208,7 +208,7 @@ module.exports = function(THREE) {
 	  * Parametric Replacement for SphereGeometry
 	  *
 	  *********************************************/
-	THREE.ParametricGeometries.SphereGeometry = function(size, u, v) {
+	ParametricGeometries.SphereGeometry = function(size, u, v) {
 
 		function sphere(u, v) {
 			u *= Math.PI;
@@ -226,7 +226,7 @@ module.exports = function(THREE) {
 
 	};
 
-	THREE.ParametricGeometries.SphereGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.SphereGeometry.prototype = Object.create( THREE.Geometry.prototype );
 
 
 	 /*********************************************
@@ -235,7 +235,7 @@ module.exports = function(THREE) {
 	  *
 	  *********************************************/
 
-	THREE.ParametricGeometries.PlaneGeometry = function(width, depth, segmentsWidth, segmentsDepth) {
+	ParametricGeometries.PlaneGeometry = function(width, depth, segmentsWidth, segmentsDepth) {
 
 		function plane(u, v) {
 
@@ -250,6 +250,8 @@ module.exports = function(THREE) {
 
 	};
 
-	THREE.ParametricGeometries.PlaneGeometry.prototype = Object.create( THREE.Geometry.prototype );
+	ParametricGeometries.PlaneGeometry.prototype = Object.create( THREE.Geometry.prototype );
+
+	return ParametricGeometries
 
 }
