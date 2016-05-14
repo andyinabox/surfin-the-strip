@@ -1,11 +1,11 @@
 {
   "name": "surfin-the-strip",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Surfin' the strip",
   "main": "index.js",
   "scripts": {
     "start": "budo index.js -H localhost --live --open --css styles.css",
-    "build": "budo-demo index.js -c styles.css -m -t 'surfin the strip'",
+    "build": "budo-demo index.js -i assets -c styles.css -m -t 'surfin the strip'",
     "deploy": "npm run build; gh-pages -d dist; npm run clean",
     "clean": "rm -r dist"
   },
