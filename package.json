@@ -1,12 +1,11 @@
 {
   "name": "surfin-the-strip",
   "version": "0.0.1",
-  "description": "",
+  "description": "Surfin' the strip",
   "main": "index.js",
-  "license": "MIT",
   "scripts": {
-    "start": "budo index.js -H localhost --live --open --css styles.css -- -t glslify",
-    "build": "budo-demo index.js -c styles.css -m -- -t glslify",
+    "start": "budo index.js -H localhost --live --open --css styles.css",
+    "build": "budo-demo index.js -c styles.css -m -t 'surfin the strip'",
     "deploy": "npm run build; gh-pages -d dist; npm run clean",
     "clean": "rm -r dist"
   },
@@ -16,11 +15,6 @@
     "url": "http://andydayton.com/"
   },
   "dependencies": {
-    "a-big-triangle": "~1.0.2",
-    "array-shuffle": "^1.0.0",
-    "dom-events": "^0.1.1",
-    "gl-now": "~1.4.0",
-    "gl-shader": "~4.1.1",
     "google-maps": "^3.2.1",
     "google-panorama-by-location": "^4.1.1",
     "three": "^0.76.1",
@@ -35,7 +29,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/andyinabox/centered.git"
+    "url": "git://github.com/andyinabox/surfin-the-strip.git"
   },
-  "homepage": "https://github.com/andyinabox/centered"
+  "homepage": "https://andyinabox.github.io/surfin-the-strip/"
 }

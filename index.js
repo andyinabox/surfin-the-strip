@@ -18,7 +18,7 @@ GoogleMaps.KEY = 'AIzaSyCuKjnJWCoUMRLbVFNEkJoFVD0I73u_xJo';
 GoogleMaps.load(function(google) {
 
 var app = createOrbitViewer({
-  clearColor: 0xffffff,
+  clearColor: 0x000000,
   clearAlpha: 1.0,
   fov: 45,
   position: new THREE.Vector3(0, 0, 10)
