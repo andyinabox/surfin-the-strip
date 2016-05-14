@@ -1,5 +1,5 @@
 {
-  "name": "centered",
+  "name": "surfin-the-strip",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
@@ -17,9 +17,15 @@
   },
   "dependencies": {
     "a-big-triangle": "~1.0.2",
+    "array-shuffle": "^1.0.0",
+    "dom-events": "^0.1.1",
     "gl-now": "~1.4.0",
     "gl-shader": "~4.1.1",
-    "google-maps": "^3.2.1"
+    "google-maps": "^3.2.1",
+    "google-panorama-by-location": "^4.1.1",
+    "three": "^0.76.1",
+    "three-orbit-viewer": "^69.3.0",
+    "webgl-context": "^2.2.0"
   },
   "devDependencies": {
     "glslify": "~5.0.0",
