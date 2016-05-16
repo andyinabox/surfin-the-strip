@@ -1,5 +1,5 @@
 {
-  "preset": "LA",
+  "preset": "Default",
   "remembered": {
     "Default": {
       "0": {
@@ -11,7 +11,7 @@
         "wireframe": false
       },
       "1": {
-        "zoom": 6,
+        "zoom": 5,
         "lat": 0,
         "lon": 0,
         "tileSource": "http://otile1.mqcdn.com/tiles/1.0.0/sat/",

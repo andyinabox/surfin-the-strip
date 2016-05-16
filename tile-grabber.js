@@ -48,7 +48,7 @@ module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
 				emitter.emit('complete', canvas);
 			}
 		}
-		img.src = tileUrl(tileBase, xy[0]+i, xy[1], zoom);
+		img.src = tileUrl(tileBase, xy[0] - (tileCount/2) + i, xy[1], zoom);
 	});
 
 	return emitter;

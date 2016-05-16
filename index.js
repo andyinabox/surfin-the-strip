@@ -101,9 +101,9 @@ guiMob.add(params.mob, 'slices', 1, 100).step(1).onChange(updateGeometry);
 guiMob.add(params.mob, 'stacks', 1, 100).step(1).onChange(updateGeometry);
 guiMob.add(params.mob, 'wireframe').onChange(updateGeometry)
 var guiMap = gui.addFolder('Map Texture');
-guiMap.add(params.map, 'zoom', 0, 32).step(1).onChange(updateTexture);
-guiMap.add(params.map, 'lat').step(.000001).onChange(updateTexture);
-guiMap.add(params.map, 'lon').step(.000001).onChange(updateTexture);
+guiMap.add(params.map, 'zoom', 0, 32).step(1).listen().onChange(updateTexture);
+guiMap.add(params.map, 'lat').step(.000001).listen().onChange(updateTexture);
+guiMap.add(params.map, 'lon').step(.000001).listen().onChange(updateTexture);
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
 guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
 
