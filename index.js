@@ -2,6 +2,7 @@
 var THREE = require('three');
 var createOrbitViewer = require('three-orbit-viewer')(THREE);
 var dat = require('exdat');
+var geolocation = require('geolocation');
 var KeyListener = require('key-listener');
 
 var settings = require('./settings.json');
@@ -101,9 +102,9 @@ guiMob.add(params.mob, 'slices', 1, 100).step(1).onChange(updateGeometry);
 guiMob.add(params.mob, 'stacks', 1, 100).step(1).onChange(updateGeometry);
 guiMob.add(params.mob, 'wireframe').onChange(updateGeometry)
 var guiMap = gui.addFolder('Map Texture');
-guiMap.add(params.map, 'zoom', 0, 32).step(1).onChange(updateTexture);
-guiMap.add(params.map, 'lat').step(.000001).onChange(updateTexture);
-guiMap.add(params.map, 'lon').step(.000001).onChange(updateTexture);
+guiMap.add(params.map, 'zoom', 0, 32).step(1).listen().onChange(updateTexture);
+guiMap.add(params.map, 'lat').step(.000001).listen().onChange(updateTexture);
+guiMap.add(params.map, 'lon').step(.000001).listen().onChange(updateTexture);
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
 guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
 
@@ -171,6 +172,15 @@ app.on('tick', function() {
 	}
 });
 
+geolocation.getCurrentPosition(function (err, position) {
+  if(err) console.error(err);
+
+  params.map.lat = position.coords.latitude;
+  params.map.lon = position.coords.longitude;
+	params.map.zoom = 17;
+	updateTexture();
+});
+
 keyHandler.addListener(document, 'g', function() {
   gui.domElement.classList.toggle('hidden');
 });
@@ -198,7 +208,7 @@ function updateTexture() {
 	})
 }
 
-},{"./settings.json":39,"./tile-grabber":40,"exdat":24,"key-listener":25,"three":37,"three-orbit-viewer":26}],2:[function(require,module,exports){
+},{"./settings.json":43,"./tile-grabber":44,"exdat":25,"geolocation":26,"key-listener":29,"three":41,"three-orbit-viewer":30}],2:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -499,6 +509,102 @@ function isUndefined(arg) {
 }
 
 },{}],3:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = setTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    clearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        setTimeout(drainQueue, 0);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],4:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -681,7 +787,7 @@ function recalculateHSV(color) {
 
 }
 
-},{"../utils/common.js":20,"./interpret.js":4,"./math.js":5,"./toString.js":6}],4:[function(require,module,exports){
+},{"../utils/common.js":21,"./interpret.js":5,"./math.js":6,"./toString.js":7}],5:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1024,7 +1130,7 @@ function createInterpert() {
 
 }
 
-},{"../utils/common.js":20,"./toString.js":6}],5:[function(require,module,exports){
+},{"../utils/common.js":21,"./toString.js":7}],6:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1125,7 +1231,7 @@ function math() {
   };
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1162,7 +1268,7 @@ function toString(color) {
 
 }
 
-},{"../utils/common.js":20}],7:[function(require,module,exports){
+},{"../utils/common.js":21}],8:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1246,7 +1352,7 @@ common.extend(
   }
 );
 
-},{"../dom/dom.js":18,"../utils/common.js":20,"./Controller.js":9}],8:[function(require,module,exports){
+},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],9:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1567,7 +1673,7 @@ function hueGradient(elem) {
   elem.style.cssText += 'background: linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);'
 }
 
-},{"../color/Color.js":3,"../color/interpret.js":4,"../dom/dom.js":18,"../utils/common.js":20,"./Controller.js":9}],9:[function(require,module,exports){
+},{"../color/Color.js":4,"../color/interpret.js":5,"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],10:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1708,7 +1814,7 @@ common.extend(
 );
 
 
-},{"../utils/common.js":20,"../utils/escapeHtml.js":22}],10:[function(require,module,exports){
+},{"../utils/common.js":21,"../utils/escapeHtml.js":23}],11:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1778,7 +1884,7 @@ common.extend(
 
 );
 
-},{"../dom/dom.js":18,"../utils/common.js":20,"./Controller.js":9}],11:[function(require,module,exports){
+},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],12:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1920,7 +2026,7 @@ function numDecimals(x) {
   }
 }
 
-},{"../utils/common.js":20,"./Controller.js":9}],12:[function(require,module,exports){
+},{"../utils/common.js":21,"./Controller.js":10}],13:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2051,7 +2157,7 @@ function roundToDecimal(value, decimals) {
   return Math.round(value * tenTo) / tenTo;
 }
 
-},{"../dom/dom.js":18,"../utils/common.js":20,"./NumberController.js":11}],13:[function(require,module,exports){
+},{"../dom/dom.js":19,"../utils/common.js":21,"./NumberController.js":12}],14:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2181,7 +2287,7 @@ function map(v, i1, i2, o1, o2) {
   return o1 + (o2 - o1) * ((v - i1) / (i2 - i1));
 }
 
-},{"../dom/dom.js":18,"../utils/common.js":20,"../utils/css.js":21,"./NumberController.js":11}],14:[function(require,module,exports){
+},{"../dom/dom.js":19,"../utils/common.js":21,"../utils/css.js":22,"./NumberController.js":12}],15:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2281,7 +2387,7 @@ common.extend(
 
 );
 
-},{"../dom/dom.js":18,"../utils/common.js":20,"./Controller.js":9}],15:[function(require,module,exports){
+},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],16:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2368,7 +2474,7 @@ common.extend(
 
 );
 
-},{"../dom/dom.js":18,"../utils/common.js":20,"./Controller.js":9}],16:[function(require,module,exports){
+},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],17:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2434,7 +2540,7 @@ function factory(object, property) {
 
 }
 
-},{"../utils/common.js":20,"./BooleanController.js":7,"./FunctionController.js":10,"./NumberControllerBox.js":12,"./NumberControllerSlider.js":13,"./OptionController.js":14,"./StringController.js":15}],17:[function(require,module,exports){
+},{"../utils/common.js":21,"./BooleanController.js":8,"./FunctionController.js":11,"./NumberControllerBox.js":13,"./NumberControllerSlider.js":14,"./OptionController.js":15,"./StringController.js":16}],18:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2548,7 +2654,7 @@ function lockScroll(e) {
   console.log(e);
 }
 
-},{"../utils/common.js":20,"./dom.js":18}],18:[function(require,module,exports){
+},{"../utils/common.js":21,"./dom.js":19}],19:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2835,7 +2941,7 @@ var dom = {
 
 module.exports = dom;
 
-},{"../utils/common.js":20}],19:[function(require,module,exports){
+},{"../utils/common.js":21}],20:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4237,7 +4343,7 @@ function createGUI() {
   return GUI;
 }
 
-},{"../controllers/BooleanController.js":7,"../controllers/ColorController.js":8,"../controllers/Controller.js":9,"../controllers/FunctionController.js":10,"../controllers/NumberControllerBox.js":12,"../controllers/NumberControllerSlider.js":13,"../controllers/factory.js":16,"../dom/CenteredDiv.js":17,"../dom/dom.js":18,"../utils/common.js":20,"../utils/css.js":21,"../utils/requestAnimationFrame.js":23}],20:[function(require,module,exports){
+},{"../controllers/BooleanController.js":8,"../controllers/ColorController.js":9,"../controllers/Controller.js":10,"../controllers/FunctionController.js":11,"../controllers/NumberControllerBox.js":13,"../controllers/NumberControllerSlider.js":14,"../controllers/factory.js":17,"../dom/CenteredDiv.js":18,"../dom/dom.js":19,"../utils/common.js":21,"../utils/css.js":22,"../utils/requestAnimationFrame.js":24}],21:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4379,7 +4485,7 @@ function common() {
   };
 }
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4414,7 +4520,7 @@ function css() {
   };
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports = escape;
 
 var entityMap = {
@@ -4432,7 +4538,7 @@ function escape(string) {
   });
 }
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4465,7 +4571,7 @@ function raf() {
       };
 }
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 /** @license
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4505,7 +4611,278 @@ module.exports = {
   GUI: require('./dat/gui/GUI.js')
 };
 
-},{"./dat/color/Color.js":3,"./dat/color/interpret.js":4,"./dat/color/math.js":5,"./dat/controllers/BooleanController.js":7,"./dat/controllers/ColorController.js":8,"./dat/controllers/Controller.js":9,"./dat/controllers/FunctionController.js":10,"./dat/controllers/NumberController.js":11,"./dat/controllers/NumberControllerBox.js":12,"./dat/controllers/NumberControllerSlider.js":13,"./dat/controllers/OptionController.js":14,"./dat/controllers/StringController.js":15,"./dat/dom/dom.js":18,"./dat/gui/GUI.js":19}],25:[function(require,module,exports){
+},{"./dat/color/Color.js":4,"./dat/color/interpret.js":5,"./dat/color/math.js":6,"./dat/controllers/BooleanController.js":8,"./dat/controllers/ColorController.js":9,"./dat/controllers/Controller.js":10,"./dat/controllers/FunctionController.js":11,"./dat/controllers/NumberController.js":12,"./dat/controllers/NumberControllerBox.js":13,"./dat/controllers/NumberControllerSlider.js":14,"./dat/controllers/OptionController.js":15,"./dat/controllers/StringController.js":16,"./dat/dom/dom.js":19,"./dat/gui/GUI.js":20}],26:[function(require,module,exports){
+(function (process){
+
+var EventEmitter = require('events').EventEmitter
+  , inherits = require('inherits')
+  , debug = require('debug')('geolocation')
+
+var currentPosition
+  , watchers = 0
+  , watcherHandle
+  , emitter = new EventEmitter()
+
+emitter.setMaxListeners(0)
+
+module.exports = exports = emitter
+
+exports.options = {}
+
+exports.getCurrentPosition = function (callback) {
+  if (watchers) {
+    if (currentPosition) {
+      debug('get current location - cache hit')
+      process.nextTick(function () {
+        callback(null, currentPosition)
+      })
+    } else {
+      debug('get current location - cache fetching')
+      function changeListener(position) {
+        emitter.removeListener('error', errorListener)
+        callback(null, position)
+      }
+      function errorListener(error) {
+        emitter.removeListener('change', changeListener)
+        callback(error)
+      }
+      emitter.once('change', changeListener)
+      emitter.once('error', errorListener)
+    }
+    return
+  }
+
+  debug('get current location - cache miss')
+  navigator.geolocation.getCurrentPosition(function (position) {
+    callback(null, position)
+  }, function (error) {
+    callback(error)
+  }, exports.options)
+}
+
+exports.createWatcher = function (callback) {
+  var watcher = new Watcher()
+
+  if (callback) {
+    watcher.on('change', callback)
+  }
+
+  watcher.start()
+
+  return watcher
+}
+
+function Watcher() {
+  EventEmitter.call(this)
+  this.watching = false
+
+  var self = this
+  this.changeHandler = function (position) {
+    self.emit('change', position)
+  }
+}
+inherits(Watcher, EventEmitter)
+exports.Watcher = Watcher
+
+Watcher.prototype.start = function () {
+  if (this.watching) return
+  this.watching = true
+  watchers++
+
+  debug('start watcher')
+
+  emitter.on('change', this.changeHandler)
+
+  if (watchers === 1) {
+    debug('start geolocation watch position')
+    watcherHandle = navigator.geolocation.watchPosition(function (position) {
+      currentPosition = position
+      emitter.emit('change', position)
+    }, function (error) {
+      emitter.emit('error', error)
+    }, this.options)
+  }
+}
+
+Watcher.prototype.stop = function () {
+  if (!this.watching) return
+  this.watching = false
+  watchers--
+
+  emitter.removeListener('change', this.changeHandler)
+
+  if (!watchers) {
+    debug('clear geolocation watch')
+    navigator.geolocation.clearWatch(watcherHandle)
+  }
+}
+
+}).call(this,require('_process'))
+},{"_process":3,"debug":27,"events":2,"inherits":28}],27:[function(require,module,exports){
+
+/**
+ * Expose `debug()` as the module.
+ */
+
+module.exports = debug;
+
+/**
+ * Create a debugger with the given `name`.
+ *
+ * @param {String} name
+ * @return {Type}
+ * @api public
+ */
+
+function debug(name) {
+  if (!debug.enabled(name)) return function(){};
+
+  return function(fmt){
+    fmt = coerce(fmt);
+
+    var curr = new Date;
+    var ms = curr - (debug[name] || curr);
+    debug[name] = curr;
+
+    fmt = name
+      + ' '
+      + fmt
+      + ' +' + debug.humanize(ms);
+
+    // This hackery is required for IE8
+    // where `console.log` doesn't have 'apply'
+    window.console
+      && console.log
+      && Function.prototype.apply.call(console.log, console, arguments);
+  }
+}
+
+/**
+ * The currently active debug mode names.
+ */
+
+debug.names = [];
+debug.skips = [];
+
+/**
+ * Enables a debug mode by name. This can include modes
+ * separated by a colon and wildcards.
+ *
+ * @param {String} name
+ * @api public
+ */
+
+debug.enable = function(name) {
+  try {
+    localStorage.debug = name;
+  } catch(e){}
+
+  var split = (name || '').split(/[\s,]+/)
+    , len = split.length;
+
+  for (var i = 0; i < len; i++) {
+    name = split[i].replace('*', '.*?');
+    if (name[0] === '-') {
+      debug.skips.push(new RegExp('^' + name.substr(1) + '$'));
+    }
+    else {
+      debug.names.push(new RegExp('^' + name + '$'));
+    }
+  }
+};
+
+/**
+ * Disable debug output.
+ *
+ * @api public
+ */
+
+debug.disable = function(){
+  debug.enable('');
+};
+
+/**
+ * Humanize the given `ms`.
+ *
+ * @param {Number} m
+ * @return {String}
+ * @api private
+ */
+
+debug.humanize = function(ms) {
+  var sec = 1000
+    , min = 60 * 1000
+    , hour = 60 * min;
+
+  if (ms >= hour) return (ms / hour).toFixed(1) + 'h';
+  if (ms >= min) return (ms / min).toFixed(1) + 'm';
+  if (ms >= sec) return (ms / sec | 0) + 's';
+  return ms + 'ms';
+};
+
+/**
+ * Returns true if the given mode name is enabled, false otherwise.
+ *
+ * @param {String} name
+ * @return {Boolean}
+ * @api public
+ */
+
+debug.enabled = function(name) {
+  for (var i = 0, len = debug.skips.length; i < len; i++) {
+    if (debug.skips[i].test(name)) {
+      return false;
+    }
+  }
+  for (var i = 0, len = debug.names.length; i < len; i++) {
+    if (debug.names[i].test(name)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Coerce `val`.
+ */
+
+function coerce(val) {
+  if (val instanceof Error) return val.stack || val.message;
+  return val;
+}
+
+// persist
+
+try {
+  if (window.localStorage) debug.enable(localStorage.debug);
+} catch(e){}
+
+},{}],28:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],29:[function(require,module,exports){
 module.exports = KeyListener;
 
 var keys = ['backspace','tab','enter','shift','ctrl','alt','pause/break','caps lock','escape','page up','page down','end','home','left arrow','up arrow','right arrow','down arrow','insert','delete','0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','left window key','right window key','select key','numpad 0','numpad 1','numpad 2','numpad 3','numpad 4','numpad 5','numpad 6','numpad 7','numpad 8','numpad 9','multiply','add','subtract','decimal point','divide','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','num lock','scroll lock','semi-colon','equal sign','comma','dash','period','forward slash','grave accent','open bracket','back slash','close braket','single quote'];
@@ -4545,7 +4922,7 @@ KeyListener.prototype.getKey = function(key){
     }
   }
 };
-},{}],26:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 var createApp = require('canvas-app')
 var createControls = require('three-orbit-controls')
 var Emitter = require('events/')
@@ -4630,13 +5007,13 @@ module.exports = function(THREE) {
         return emitter
     }
 }
-},{"as-number":27,"canvas-app":28,"events/":34,"three-orbit-controls":35,"xtend":36}],27:[function(require,module,exports){
+},{"as-number":31,"canvas-app":32,"events/":38,"three-orbit-controls":39,"xtend":40}],31:[function(require,module,exports){
 module.exports = function numtype(num, def) {
 	return typeof num === 'number'
 		? num 
 		: (typeof def === 'number' ? def : 0)
 }
-},{}],28:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var isGL = require('is-webgl-context');
 var getGL = require('webgl-context');
 var debounce = require('debounce');
@@ -4869,7 +5246,7 @@ CanvasApp.prototype.resize = function(width, height) {
 };
 
 module.exports = CanvasApp;
-},{"add-event-listener":29,"debounce":30,"is-webgl-context":32,"webgl-context":33}],29:[function(require,module,exports){
+},{"add-event-listener":33,"debounce":34,"is-webgl-context":36,"webgl-context":37}],33:[function(require,module,exports){
 addEventListener.removeEventListener = removeEventListener
 addEventListener.addEventListener = addEventListener
 
@@ -4917,7 +5294,7 @@ function oldIEDetach(el, eventName, listener, useCapture) {
   el.detachEvent('on' + eventName, listener)
 }
 
-},{}],30:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -4972,14 +5349,14 @@ module.exports = function debounce(func, wait, immediate){
   };
 };
 
-},{"date-now":31}],31:[function(require,module,exports){
+},{"date-now":35}],35:[function(require,module,exports){
 module.exports = Date.now || now
 
 function now() {
     return new Date().getTime()
 }
 
-},{}],32:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 /*globals WebGL2RenderingContext,WebGLRenderingContext*/
 module.exports = function isWebGLContext (ctx) {
   if (!ctx) return false
@@ -4998,7 +5375,7 @@ module.exports = function isWebGLContext (ctx) {
   return false
 }
 
-},{}],33:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 module.exports = function(opts) {
     opts = opts||{};
     var canvas = opts.canvas || document.createElement("canvas");
@@ -5015,9 +5392,9 @@ module.exports = function(opts) {
     }
     return gl;
 };
-},{}],34:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 arguments[4][2][0].apply(exports,arguments)
-},{"dup":2}],35:[function(require,module,exports){
+},{"dup":2}],39:[function(require,module,exports){
 module.exports = function(THREE) {
     var MOUSE = THREE.MOUSE
     if (!MOUSE)
@@ -5699,7 +6076,7 @@ module.exports = function(THREE) {
     OrbitControls.prototype.constructor = OrbitControls;
     return OrbitControls;
 }
-},{}],36:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -5720,7 +6097,7 @@ function extend() {
     return target
 }
 
-},{}],37:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**
@@ -47242,7 +47619,7 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-},{}],38:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 // a tile is an array [x,y,z]
 var d2r = Math.PI / 180,
     r2d = 180 / Math.PI;
@@ -47433,9 +47810,9 @@ module.exports = {
     pointToTileFraction: pointToTileFraction
 };
 
-},{}],39:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 module.exports={
-  "preset": "LA",
+  "preset": "Default",
   "remembered": {
     "Default": {
       "0": {
@@ -47447,7 +47824,7 @@ module.exports={
         "wireframe": false
       },
       "1": {
-        "zoom": 6,
+        "zoom": 5,
         "lat": 0,
         "lon": 0,
         "tileSource": "http://otile1.mqcdn.com/tiles/1.0.0/sat/",
@@ -47491,7 +47868,7 @@ module.exports={
     }
   }
 }
-},{}],40:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 var Emitter = require('events').EventEmitter;
 var tilebelt = require('tilebelt');
 var TILE_SIZE = 256;
@@ -47542,10 +47919,10 @@ module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
 				emitter.emit('complete', canvas);
 			}
 		}
-		img.src = tileUrl(tileBase, xy[0]+i, xy[1], zoom);
+		img.src = tileUrl(tileBase, xy[0] - (tileCount/2) + i, xy[1], zoom);
 	});
 
 	return emitter;
 }
 
-},{"events":2,"tilebelt":38}]},{},[1]);
+},{"events":2,"tilebelt":42}]},{},[1]);
