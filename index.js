@@ -42,6 +42,7 @@ var params = {
 		zoom: 6,
 		lat: 0,
 		lon: 0,
+		getCurrent: getCurrentLocation,
 		tileSource: tileSources['satellite'],
 		tileCount: 32
 	}
@@ -104,6 +105,7 @@ var guiMap = gui.addFolder('Map Texture');
 guiMap.add(params.map, 'zoom', 0, 32).step(1).listen().onChange(updateTexture);
 guiMap.add(params.map, 'lat').step(.000001).listen().onChange(updateTexture);
 guiMap.add(params.map, 'lon').step(.000001).listen().onChange(updateTexture);
+guiMap.add(params.map, 'getCurrent');
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
 guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
 
@@ -171,18 +173,25 @@ app.on('tick', function() {
 	}
 });
 
-geolocation.getCurrentPosition(function (err, position) {
-  if(err) console.error(err);
-
-  params.map.lat = position.coords.latitude;
-  params.map.lon = position.coords.longitude;
-	params.map.zoom = 17;
-	updateTexture();
-});
-
 keyHandler.addListener(document, 'g', function() {
   gui.domElement.classList.toggle('hidden');
 });
+
+
+getCurrentLocation();
+
+function getCurrentLocation() {
+
+	geolocation.getCurrentPosition(function (err, position) {
+	  if(err) console.error(err);
+
+	  params.map.lat = position.coords.latitude;
+	  params.map.lon = position.coords.longitude;
+		params.map.zoom = 17;
+		updateTexture();
+	});
+
+}
 
 
 function updateGeometry() {
