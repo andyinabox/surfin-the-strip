@@ -2,6 +2,9 @@
 var THREE = require('three');
 var createOrbitViewer = require('three-orbit-viewer')(THREE);
 var dat = require('exdat');
+var KeyListener = require('key-listener');
+
+var settings = require('./settings.json');
 
 var tileGrabber = require('./tile-grabber');
 
@@ -16,9 +19,16 @@ var tileSources = {
 	'landscape': 'http://a.tile.thunderforest.com/landscape/'
 }
 
+var keyHandler = new KeyListener();
+
+
 var params = {
 	gen: {
-		rotation: true
+		rotation: true,
+		reload: function() {
+			updateGeometry();
+			updateTexture();
+		}
 	},
 	mob: {
 		slices: 40,
@@ -29,19 +39,60 @@ var params = {
 		wireframe: false		
 	},
 	map: {
-		zoom: 8,
+		zoom: 6,
 		lat: 0,
 		lon: 0,
 		tileSource: tileSources['satellite'],
-		tileCount: 18
+		tileCount: 32
 	}
 
 }
 
+var presets = {
+	equator: {
+		mob: {
+			slices: 40,
+			stacks: 40,
+			radius: 4,
+			stripWidth: 1,
+			flatness: 0.1,
+			wireframe: false		
+		},
+		map: {
+			zoom: 6,
+			lat: 0,
+			lon: 0,
+			tileSource: tileSources['satellite'],
+			tileCount: 32
+		}		
+	},
+	la: {
+		mob: {
+			slices: 40,
+			stacks: 40,
+			radius: 4,
+			stripWidth: 1,
+			flatness: 0.1,
+			wireframe: false		
+		},
+		map: {
+			zoom: 6,
+			lat: 0,
+			lon: 0,
+			tileSource: tileSources['satellite'],
+			tileCount: 32
+		}		
+	},
+}
+
 // setup gui
-var gui = new dat.GUI();
+var gui = new dat.GUI({
+ load: settings
+ , preset: 'Default'
+});
 var guiGen = gui.addFolder('General');
 guiGen.add(params.gen, 'rotation');
+guiGen.add(params.gen, 'reload');
 var guiMob = gui.addFolder('Geometry');
 guiMob.add(params.mob, 'radius', 0, 10).onChange(updateGeometry);
 guiMob.add(params.mob, 'stripWidth', 0, 10).onChange(updateGeometry);
@@ -54,7 +105,13 @@ guiMap.add(params.map, 'zoom', 0, 32).step(1).onChange(updateTexture);
 guiMap.add(params.map, 'lat').step(.000001).onChange(updateTexture);
 guiMap.add(params.map, 'lon').step(.000001).onChange(updateTexture);
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
-guiMap.add(params.map, 'tileCount', 0, 30).step(2).onChange(updateTexture);
+guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
+
+gui.remember(params.mob);
+gui.remember(params.map);
+
+// hide initially
+gui.domElement.classList.toggle('hidden');
 
 var app = createOrbitViewer({
   clearColor: 0x000000,
@@ -114,6 +171,11 @@ app.on('tick', function() {
 	}
 });
 
+keyHandler.addListener(document, 'g', function() {
+  gui.domElement.classList.toggle('hidden');
+});
+
+
 function updateGeometry() {
 	mobius.geometry = new THREE.ParametricGeometry(mobius3d, params.mob.slices, params.mob.stacks);
 	mobius.material.wireframe = params.mob.wireframe;
@@ -129,7 +191,6 @@ function updateTexture() {
 		params.map.tileCount,
 		params.map.tileSource
 	).on('progress', function(evt) {
-		console.log('progress', evt);
 		texture.needsUpdate = true;
 	})
 	.on('complete', function() {
@@ -137,7 +198,7 @@ function updateTexture() {
 	})
 }
 
-},{"./tile-grabber":38,"exdat":24,"three":36,"three-orbit-viewer":25}],2:[function(require,module,exports){
+},{"./settings.json":39,"./tile-grabber":40,"exdat":24,"key-listener":25,"three":37,"three-orbit-viewer":26}],2:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4445,6 +4506,46 @@ module.exports = {
 };
 
 },{"./dat/color/Color.js":3,"./dat/color/interpret.js":4,"./dat/color/math.js":5,"./dat/controllers/BooleanController.js":7,"./dat/controllers/ColorController.js":8,"./dat/controllers/Controller.js":9,"./dat/controllers/FunctionController.js":10,"./dat/controllers/NumberController.js":11,"./dat/controllers/NumberControllerBox.js":12,"./dat/controllers/NumberControllerSlider.js":13,"./dat/controllers/OptionController.js":14,"./dat/controllers/StringController.js":15,"./dat/dom/dom.js":18,"./dat/gui/GUI.js":19}],25:[function(require,module,exports){
+module.exports = KeyListener;
+
+var keys = ['backspace','tab','enter','shift','ctrl','alt','pause/break','caps lock','escape','page up','page down','end','home','left arrow','up arrow','right arrow','down arrow','insert','delete','0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','left window key','right window key','select key','numpad 0','numpad 1','numpad 2','numpad 3','numpad 4','numpad 5','numpad 6','numpad 7','numpad 8','numpad 9','multiply','add','subtract','decimal point','divide','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','num lock','scroll lock','semi-colon','equal sign','comma','dash','period','forward slash','grave accent','open bracket','back slash','close braket','single quote'];
+var codes = [8,9,13,16,17,18,19,20,27,33,34,35,36,37,38,39,40,45,46,48,49,50,51,52,53,54,55,56,57,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,96,97,98,99,100,101,102,103,104,105,106,107,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,144,145,186,187,188,189,190,191,192,219,220,221,222];
+
+function KeyListener() {
+  if (!(this instanceof KeyListener)){
+    return new KeyListener(options);
+  }
+}
+
+KeyListener.prototype.addListener = function(element, key, userFunction) {
+  var comparator;
+  if(typeof key === 'string'){
+    comparator = codes[keys.indexOf(key)];
+  }else{
+    if(typeof key === 'number'){
+      comparator = key;
+    }
+  }
+  if(comparator){
+    element.addEventListener('keydown', function(e){
+      var key = e.keyCode ? e.keyCode : e.which;
+      if(key === comparator) {
+        userFunction();
+      }
+    }.bind(this));
+  }
+};
+
+KeyListener.prototype.getKey = function(key){
+  if(typeof key === 'string'){
+    return codes[keys.indexOf(key)];
+  }else{
+    if(typeof key === 'number'){
+      return keys[codes.indexOf(key)];
+    }
+  }
+};
+},{}],26:[function(require,module,exports){
 var createApp = require('canvas-app')
 var createControls = require('three-orbit-controls')
 var Emitter = require('events/')
@@ -4529,13 +4630,13 @@ module.exports = function(THREE) {
         return emitter
     }
 }
-},{"as-number":26,"canvas-app":27,"events/":33,"three-orbit-controls":34,"xtend":35}],26:[function(require,module,exports){
+},{"as-number":27,"canvas-app":28,"events/":34,"three-orbit-controls":35,"xtend":36}],27:[function(require,module,exports){
 module.exports = function numtype(num, def) {
 	return typeof num === 'number'
 		? num 
 		: (typeof def === 'number' ? def : 0)
 }
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var isGL = require('is-webgl-context');
 var getGL = require('webgl-context');
 var debounce = require('debounce');
@@ -4768,7 +4869,7 @@ CanvasApp.prototype.resize = function(width, height) {
 };
 
 module.exports = CanvasApp;
-},{"add-event-listener":28,"debounce":29,"is-webgl-context":31,"webgl-context":32}],28:[function(require,module,exports){
+},{"add-event-listener":29,"debounce":30,"is-webgl-context":32,"webgl-context":33}],29:[function(require,module,exports){
 addEventListener.removeEventListener = removeEventListener
 addEventListener.addEventListener = addEventListener
 
@@ -4816,7 +4917,7 @@ function oldIEDetach(el, eventName, listener, useCapture) {
   el.detachEvent('on' + eventName, listener)
 }
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -4871,14 +4972,14 @@ module.exports = function debounce(func, wait, immediate){
   };
 };
 
-},{"date-now":30}],30:[function(require,module,exports){
+},{"date-now":31}],31:[function(require,module,exports){
 module.exports = Date.now || now
 
 function now() {
     return new Date().getTime()
 }
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 /*globals WebGL2RenderingContext,WebGLRenderingContext*/
 module.exports = function isWebGLContext (ctx) {
   if (!ctx) return false
@@ -4897,7 +4998,7 @@ module.exports = function isWebGLContext (ctx) {
   return false
 }
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 module.exports = function(opts) {
     opts = opts||{};
     var canvas = opts.canvas || document.createElement("canvas");
@@ -4914,9 +5015,9 @@ module.exports = function(opts) {
     }
     return gl;
 };
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 arguments[4][2][0].apply(exports,arguments)
-},{"dup":2}],34:[function(require,module,exports){
+},{"dup":2}],35:[function(require,module,exports){
 module.exports = function(THREE) {
     var MOUSE = THREE.MOUSE
     if (!MOUSE)
@@ -5598,7 +5699,7 @@ module.exports = function(THREE) {
     OrbitControls.prototype.constructor = OrbitControls;
     return OrbitControls;
 }
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -5619,7 +5720,7 @@ function extend() {
     return target
 }
 
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**
@@ -47141,7 +47242,7 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-},{}],37:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 // a tile is an array [x,y,z]
 var d2r = Math.PI / 180,
     r2d = 180 / Math.PI;
@@ -47332,7 +47433,65 @@ module.exports = {
     pointToTileFraction: pointToTileFraction
 };
 
-},{}],38:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
+module.exports={
+  "preset": "LA",
+  "remembered": {
+    "Default": {
+      "0": {
+        "radius": 4.5217978226992015,
+        "stripWidth": 1,
+        "flatness": 0.1,
+        "slices": 40,
+        "stacks": 40,
+        "wireframe": false
+      },
+      "1": {
+        "zoom": 6,
+        "lat": 0,
+        "lon": 0,
+        "tileSource": "http://otile1.mqcdn.com/tiles/1.0.0/sat/",
+        "tileCount": 32
+      }
+    },
+    "LA": {
+      "0": {
+        "radius": 6.396689602842773,
+        "stripWidth": 1,
+        "flatness": 0.1,
+        "slices": 40,
+        "stacks": 40,
+        "wireframe": false
+      },
+      "1": {
+        "zoom": 15,
+        "lat": 34.052234,
+        "lon": -118.243685,
+        "tileSource": "http://otile1.mqcdn.com/tiles/1.0.0/sat/",
+        "tileCount": 32
+      }
+    }
+  },
+  "closed": false,
+  "folders": {
+    "General": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "Geometry": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "Map Texture": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    }
+  }
+}
+},{}],40:[function(require,module,exports){
 var Emitter = require('events').EventEmitter;
 var tilebelt = require('tilebelt');
 var TILE_SIZE = 256;
@@ -47389,4 +47548,4 @@ module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
 	return emitter;
 }
 
-},{"events":2,"tilebelt":37}]},{},[1]);
+},{"events":2,"tilebelt":38}]},{},[1]);
