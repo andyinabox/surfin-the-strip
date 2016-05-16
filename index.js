@@ -17,7 +17,7 @@ var tileSources = {
 
 var params = {
 	gen: {
-
+		rotation: true
 	},
 	mob: {
 		slices: 40,
@@ -39,7 +39,8 @@ var params = {
 
 // setup gui
 var gui = new dat.GUI();
-// var guiGen = gui.addFolder('General');
+var guiGen = gui.addFolder('General');
+guiGen.add(params.gen, 'rotation');
 var guiMob = gui.addFolder('Geometry');
 guiMob.add(params.mob, 'radius', 0, 10).onChange(updateGeometry);
 guiMob.add(params.mob, 'stripWidth', 0, 10).onChange(updateGeometry);
@@ -58,7 +59,7 @@ var app = createOrbitViewer({
   clearColor: 0x000000,
   clearAlpha: 1.0,
   fov: 45,
-  position: new THREE.Vector3(0, 0, 10)
+  position: new THREE.Vector3(0, 0, 15)
 })
 
 function mobius3d(u, t) {
@@ -104,7 +105,12 @@ var mobius = new THREE.Mesh(geo, mat)
 app.scene.add(mobius)
 
 app.on('tick', function() {
-
+	if(params.gen.rotation) {
+		mobius.rotateZ(Math.PI/360);
+		mobius.rotateX(Math.PI/720);
+		mobius.rotateY(-Math.PI/720);
+		mobius.needsUpdate = true;
+	}
 });
 
 function updateGeometry() {
