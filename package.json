@@ -15,8 +15,7 @@
     "url": "http://andydayton.com/"
   },
   "dependencies": {
-    "google-maps": "^3.2.1",
-    "google-panorama-by-location": "^4.1.1",
+    "exdat": "^0.6.2",
     "three": "^0.76.1",
     "three-orbit-viewer": "^69.3.0",
     "webgl-context": "^2.2.0"
