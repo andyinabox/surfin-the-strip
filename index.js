@@ -1,6 +1,7 @@
 var THREE = require('three');
 var createOrbitViewer = require('three-orbit-viewer')(THREE);
 var dat = require('exdat');
+var geolocation = require('geolocation');
 var KeyListener = require('key-listener');
 
 var settings = require('./settings.json');
@@ -168,6 +169,15 @@ app.on('tick', function() {
 		mobius.rotateY(-Math.PI/720);
 		mobius.needsUpdate = true;
 	}
+});
+
+geolocation.getCurrentPosition(function (err, position) {
+  if(err) console.error(err);
+
+  params.map.lat = position.coords.latitude;
+  params.map.lon = position.coords.longitude;
+	params.map.zoom = 17;
+	updateTexture();
 });
 
 keyHandler.addListener(document, 'g', function() {
