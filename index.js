@@ -43,6 +43,7 @@ var params = {
 		zoom: 6,
 		lat: 0,
 		lon: 0,
+		getCurrent: getCurrentLocation,
 		tileSource: tileSources['satellite'],
 		tileCount: 32
 	}
@@ -105,6 +106,7 @@ var guiMap = gui.addFolder('Map Texture');
 guiMap.add(params.map, 'zoom', 0, 32).step(1).listen().onChange(updateTexture);
 guiMap.add(params.map, 'lat').step(.000001).listen().onChange(updateTexture);
 guiMap.add(params.map, 'lon').step(.000001).listen().onChange(updateTexture);
+guiMap.add(params.map, 'getCurrent');
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
 guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
 
@@ -172,18 +174,25 @@ app.on('tick', function() {
 	}
 });
 
-geolocation.getCurrentPosition(function (err, position) {
-  if(err) console.error(err);
-
-  params.map.lat = position.coords.latitude;
-  params.map.lon = position.coords.longitude;
-	params.map.zoom = 17;
-	updateTexture();
-});
-
 keyHandler.addListener(document, 'g', function() {
   gui.domElement.classList.toggle('hidden');
 });
+
+
+getCurrentLocation();
+
+function getCurrentLocation() {
+
+	geolocation.getCurrentPosition(function (err, position) {
+	  if(err) console.error(err);
+
+	  params.map.lat = position.coords.latitude;
+	  params.map.lon = position.coords.longitude;
+		params.map.zoom = 17;
+		updateTexture();
+	});
+
+}
 
 
 function updateGeometry() {
@@ -47812,7 +47821,7 @@ module.exports = {
 
 },{}],43:[function(require,module,exports){
 module.exports={
-  "preset": "Default",
+  "preset": "Watercolor NY",
   "remembered": {
     "Default": {
       "0": {
@@ -47845,6 +47854,23 @@ module.exports={
         "lat": 34.052234,
         "lon": -118.243685,
         "tileSource": "http://otile1.mqcdn.com/tiles/1.0.0/sat/",
+        "tileCount": 32
+      }
+    },
+    "Watercolor USA": {
+      "0": {
+        "radius": 10,
+        "stripWidth": 3.639495808513992,
+        "flatness": 0.11028775177315127,
+        "slices": 40,
+        "stacks": 40,
+        "wireframe": false
+      },
+      "1": {
+        "zoom": 7,
+        "lat": 34.052234,
+        "lon": -118.243685,
+        "tileSource": "http://c.tile.stamen.com/watercolor/",
         "tileCount": 32
       }
     }
