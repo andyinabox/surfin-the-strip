@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "budo index.js -H localhost --live --open --css styles.css",
-    "build": "budo-demo index.js -i assets -c styles.css -m -t 'surfin the strip'",
+    "build": "budo-demo index.js -c styles.css -m -t 'surfin the strip'",
     "deploy": "npm run build; gh-pages -d dist; npm run clean",
     "clean": "rm -r dist"
   },
@@ -17,6 +17,7 @@
   "dependencies": {
     "events": "^1.1.0",
     "exdat": "^0.6.2",
+    "key-listener": "^1.0.1",
     "three": "^0.76.1",
     "three-orbit-viewer": "^69.3.0",
     "tilebelt": "^1.0.1",

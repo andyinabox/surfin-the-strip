@@ -1,0 +1,57 @@
+{
+  "preset": "LA",
+  "remembered": {
+    "Default": {
+      "0": {
+        "radius": 4.5217978226992015,
+        "stripWidth": 1,
+        "flatness": 0.1,
+        "slices": 40,
+        "stacks": 40,
+        "wireframe": false
+      },
+      "1": {
+        "zoom": 6,
+        "lat": 0,
+        "lon": 0,
+        "tileSource": "http://otile1.mqcdn.com/tiles/1.0.0/sat/",
+        "tileCount": 32
+      }
+    },
+    "LA": {
+      "0": {
+        "radius": 6.396689602842773,
+        "stripWidth": 1,
+        "flatness": 0.1,
+        "slices": 40,
+        "stacks": 40,
+        "wireframe": false
+      },
+      "1": {
+        "zoom": 15,
+        "lat": 34.052234,
+        "lon": -118.243685,
+        "tileSource": "http://otile1.mqcdn.com/tiles/1.0.0/sat/",
+        "tileCount": 32
+      }
+    }
+  },
+  "closed": false,
+  "folders": {
+    "General": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "Geometry": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "Map Texture": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    }
+  }
+}

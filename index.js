@@ -1,6 +1,9 @@
 var THREE = require('three');
 var createOrbitViewer = require('three-orbit-viewer')(THREE);
 var dat = require('exdat');
+var KeyListener = require('key-listener');
+
+var settings = require('./settings.json');
 
 var tileGrabber = require('./tile-grabber');
 
@@ -15,9 +18,16 @@ var tileSources = {
 	'landscape': 'http://a.tile.thunderforest.com/landscape/'
 }
 
+var keyHandler = new KeyListener();
+
+
 var params = {
 	gen: {
-		rotation: true
+		rotation: true,
+		reload: function() {
+			updateGeometry();
+			updateTexture();
+		}
 	},
 	mob: {
 		slices: 40,
@@ -28,19 +38,60 @@ var params = {
 		wireframe: false		
 	},
 	map: {
-		zoom: 8,
+		zoom: 6,
 		lat: 0,
 		lon: 0,
 		tileSource: tileSources['satellite'],
-		tileCount: 18
+		tileCount: 32
 	}
 
 }
 
+var presets = {
+	equator: {
+		mob: {
+			slices: 40,
+			stacks: 40,
+			radius: 4,
+			stripWidth: 1,
+			flatness: 0.1,
+			wireframe: false		
+		},
+		map: {
+			zoom: 6,
+			lat: 0,
+			lon: 0,
+			tileSource: tileSources['satellite'],
+			tileCount: 32
+		}		
+	},
+	la: {
+		mob: {
+			slices: 40,
+			stacks: 40,
+			radius: 4,
+			stripWidth: 1,
+			flatness: 0.1,
+			wireframe: false		
+		},
+		map: {
+			zoom: 6,
+			lat: 0,
+			lon: 0,
+			tileSource: tileSources['satellite'],
+			tileCount: 32
+		}		
+	},
+}
+
 // setup gui
-var gui = new dat.GUI();
+var gui = new dat.GUI({
+ load: settings
+ , preset: 'Default'
+});
 var guiGen = gui.addFolder('General');
 guiGen.add(params.gen, 'rotation');
+guiGen.add(params.gen, 'reload');
 var guiMob = gui.addFolder('Geometry');
 guiMob.add(params.mob, 'radius', 0, 10).onChange(updateGeometry);
 guiMob.add(params.mob, 'stripWidth', 0, 10).onChange(updateGeometry);
@@ -53,7 +104,13 @@ guiMap.add(params.map, 'zoom', 0, 32).step(1).onChange(updateTexture);
 guiMap.add(params.map, 'lat').step(.000001).onChange(updateTexture);
 guiMap.add(params.map, 'lon').step(.000001).onChange(updateTexture);
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
-guiMap.add(params.map, 'tileCount', 0, 30).step(2).onChange(updateTexture);
+guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
+
+gui.remember(params.mob);
+gui.remember(params.map);
+
+// hide initially
+gui.domElement.classList.toggle('hidden');
 
 var app = createOrbitViewer({
   clearColor: 0x000000,
@@ -113,6 +170,11 @@ app.on('tick', function() {
 	}
 });
 
+keyHandler.addListener(document, 'g', function() {
+  gui.domElement.classList.toggle('hidden');
+});
+
+
 function updateGeometry() {
 	mobius.geometry = new THREE.ParametricGeometry(mobius3d, params.mob.slices, params.mob.stacks);
 	mobius.material.wireframe = params.mob.wireframe;
@@ -128,7 +190,6 @@ function updateTexture() {
 		params.map.tileCount,
 		params.map.tileSource
 	).on('progress', function(evt) {
-		console.log('progress', evt);
 		texture.needsUpdate = true;
 	})
 	.on('complete', function() {
