@@ -1,6 +1,6 @@
 {
   "name": "surfin-the-strip",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Surfin' the strip",
   "main": "index.js",
   "scripts": {
