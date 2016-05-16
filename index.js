@@ -22,18 +22,18 @@ var params = {
 	},
 	mob: {
 		slices: 40,
-		stacks: 10,
-		radius: 3,
+		stacks: 40,
+		radius: 4,
 		stripWidth: 1,
-		flatness: 0.125,
+		flatness: 0.1,
 		wireframe: false		
 	},
 	map: {
-		zoom: 17,
-		lat: 40.657521,
-		lon: -73.959439,
+		zoom: 8,
+		lat: 0,
+		lon: 0,
 		tileSource: tileSources['satellite'],
-		tileCount: 10
+		tileCount: 18
 	}
 
 }
