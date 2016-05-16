@@ -39,20 +39,20 @@ var params = {
 
 // setup gui
 var gui = new dat.GUI();
-var guiGen = gui.addFolder('General');
-var guiMob = gui.addFolder('Mobius');
-guiMob.add(params.mob, 'radius', 0, 10);
-guiMob.add(params.mob, 'stripWidth', 0, 10);
-guiMob.add(params.mob, 'flatness', 0, 1);
-guiMob.add(params.mob, 'slices', 1, 100).step(1);
-guiMob.add(params.mob, 'stacks', 1, 100).step(1);
-guiMob.add(params.mob, 'wireframe')
-var guiMap = gui.addFolder('Map');
-guiMap.add(params.map, 'zoom', 0, 32).step(1);
-guiMap.add(params.map, 'lat').step(.000001);
-guiMap.add(params.map, 'lon').step(.000001);
-guiMap.add(params.map, 'tileSource', tileSources);
-guiMap.add(params.map, 'tileCount', 0, 30).step(2);
+// var guiGen = gui.addFolder('General');
+var guiMob = gui.addFolder('Geometry');
+guiMob.add(params.mob, 'radius', 0, 10).onChange(updateGeometry);
+guiMob.add(params.mob, 'stripWidth', 0, 10).onChange(updateGeometry);
+guiMob.add(params.mob, 'flatness', 0, 1).onChange(updateGeometry);
+guiMob.add(params.mob, 'slices', 1, 100).step(1).onChange(updateGeometry);
+guiMob.add(params.mob, 'stacks', 1, 100).step(1).onChange(updateGeometry);
+guiMob.add(params.mob, 'wireframe').onChange(updateGeometry)
+var guiMap = gui.addFolder('Map Texture');
+guiMap.add(params.map, 'zoom', 0, 32).step(1).onChange(updateTexture);
+guiMap.add(params.map, 'lat').step(.000001).onChange(updateTexture);
+guiMap.add(params.map, 'lon').step(.000001).onChange(updateTexture);
+guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
+guiMap.add(params.map, 'tileCount', 0, 30).step(2).onChange(updateTexture);
 
 var app = createOrbitViewer({
   clearColor: 0x000000,
@@ -84,32 +84,13 @@ function mobius3d(u, t) {
 		x = (major + x) * Math.cos(u);
 		return new THREE.Vector3(x, y, z);
 	}
-
+var canvas = document.createElement('canvas');
 var texture = new THREE.Texture();
 texture.minFilter = THREE.LinearFilter;
 texture.generateMipmap = false;
-
-// // transparent canvas to start (white)
-var canvas = document.createElement('canvas');
-tileGrabber(
-	canvas,
-	params.map.lon,
-	params.map.lat,
-	params.map.zoom,
-	params.map.tileCount,
-	params.map.tileSource
-).on('progress', function(evt) {
-	console.log('progress', evt);
-	texture.needsUpdate = true;
-})
-.on('complete', function() {
-	texture.needsUpdate = true;
-})
-
-// document.body.appendChild(canvas);
-
 texture.image = canvas;
-texture.needsUpdate = true;
+
+updateTexture();
 
 // // add a double-sided sphere
 // var geo = new THREE.SphereGeometry(1, 84, 84)
@@ -123,14 +104,28 @@ var mobius = new THREE.Mesh(geo, mat)
 app.scene.add(mobius)
 
 app.on('tick', function() {
-	var m = app.scene.children[0];
-
-	m.geometry = new THREE.ParametricGeometry(mobius3d, params.mob.slices, params.mob.stacks);
-	m.material.wireframe = params.mob.wireframe;
-	m.needsUpdate = true;
-
-
-// texture.needsUpdate = true;
-
 
 });
+
+function updateGeometry() {
+	mobius.geometry = new THREE.ParametricGeometry(mobius3d, params.mob.slices, params.mob.stacks);
+	mobius.material.wireframe = params.mob.wireframe;
+	mobius.needsUpdate = true;
+}
+
+function updateTexture() {
+	tileGrabber(
+		canvas,
+		params.map.lon,
+		params.map.lat,
+		params.map.zoom,
+		params.map.tileCount,
+		params.map.tileSource
+	).on('progress', function(evt) {
+		console.log('progress', evt);
+		texture.needsUpdate = true;
+	})
+	.on('complete', function() {
+		texture.needsUpdate = true;
+	})
+}

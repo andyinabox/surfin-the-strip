@@ -7,7 +7,7 @@ function tileUrl(base, x, y, z) {
 }
 
 module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
-	var ctx = canvas.getContext("2d")
+	var ctx
 		, xy = tilebelt.pointToTile(lon, lat, zoom)
 		, emitter = new Emitter()
 		, images = [];
@@ -15,6 +15,8 @@ module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
 	// set canvas dimensions
 	canvas.width = TILE_SIZE * tileCount/2;
 	canvas.height = TILE_SIZE * 2;
+	ctx = canvas.getContext('2d');
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	// generate images
 	for(var i=0; i<tileCount; i++) {
