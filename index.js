@@ -2,7 +2,7 @@ var THREE = require('three');
 var createOrbitViewer = require('three-orbit-viewer')(THREE);
 var dat = require('exdat');
 
-var ParametricGeometries = require('./ParametricGeometries.js')(THREE);
+var tileGrabber = require('./tile-grabber');
 
 var tileSources = {
 	'satellite': 'http://otile1.mqcdn.com/tiles/1.0.0/sat/',
@@ -25,14 +25,14 @@ var params = {
 		radius: 3,
 		stripWidth: 1,
 		flatness: 0.125,
-		wireframe: true		
+		wireframe: false		
 	},
 	map: {
 		zoom: 17,
 		lat: 40.657521,
 		lon: -73.959439,
 		tileSource: tileSources['satellite'],
-		tileCount: 2,	
+		tileCount: 10
 	}
 
 }
@@ -85,24 +85,37 @@ function mobius3d(u, t) {
 		return new THREE.Vector3(x, y, z);
 	}
 
-// var texture = new THREE.Texture()
-// texture.minFilter = THREE.LinearFilter
-// texture.generateMipmap = false
+var texture = new THREE.Texture();
+texture.minFilter = THREE.LinearFilter;
+texture.generateMipmap = false;
 
 // // transparent canvas to start (white)
-// var canvas = document.createElement('canvas')
-// texture.needsUpdate = true
-// texture.image = img
-// img.onload = function() {
-//   texture.needsUpdate = true;
-// }
+var canvas = document.createElement('canvas');
+tileGrabber(
+	canvas,
+	params.map.lon,
+	params.map.lat,
+	params.map.zoom,
+	params.map.tileCount,
+	params.map.tileSource
+).on('progress', function(evt) {
+	console.log('progress', evt);
+	texture.needsUpdate = true;
+})
+.on('complete', function() {
+	texture.needsUpdate = true;
+})
 
+// document.body.appendChild(canvas);
+
+texture.image = canvas;
+texture.needsUpdate = true;
 
 // // add a double-sided sphere
 // var geo = new THREE.SphereGeometry(1, 84, 84)
 var geo = new THREE.ParametricGeometry( mobius3d, params.mob.slices, params.mob.stacks );
 var mat = new THREE.MeshBasicMaterial({
-  // map: texture,
+  map: texture,
   side: THREE.DoubleSide,
   wireframe: params.mob.wireframe
 })
@@ -115,5 +128,9 @@ app.on('tick', function() {
 	m.geometry = new THREE.ParametricGeometry(mobius3d, params.mob.slices, params.mob.stacks);
 	m.material.wireframe = params.mob.wireframe;
 	m.needsUpdate = true;
+
+
+// texture.needsUpdate = true;
+
 
 });

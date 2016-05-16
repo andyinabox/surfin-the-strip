@@ -15,9 +15,11 @@
     "url": "http://andydayton.com/"
   },
   "dependencies": {
+    "events": "^1.1.0",
     "exdat": "^0.6.2",
     "three": "^0.76.1",
     "three-orbit-viewer": "^69.3.0",
+    "tilebelt": "^1.0.1",
     "webgl-context": "^2.2.0"
   },
   "devDependencies": {
