@@ -36,7 +36,7 @@ var params = {
 		slices: 40,
 		stacks: 40,
 		radius: 4,
-		stripWidth: 1,
+		stripWidth: 0.7,
 		flatness: 0.1,
 		wireframe: false		
 	},
@@ -49,8 +49,8 @@ var params = {
 		tileCount: 32
 	},
 	text: {
-		content: "surfin' the strip!",
-		size: 70,
+		content: "I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that ",
+		size: 72,
 		font: "Helvetica",
 		color: [255, 255, 255]
 	}
@@ -80,15 +80,16 @@ guiMap.add(params.map, 'lon').step(.000001).listen().onChange(updateTexture);
 guiMap.add(params.map, 'getCurrent');
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
 guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
-
 var guiText = gui.addFolder('Text');
-guiText.add(params.text, "content").onChange(updateMainCanvas);
-guiText.add(params.text, "font").onChange(updateMainCanvas);
-guiText.add(params.text, "size", 1, 100).onChange(updateMainCanvas);
-guiText.addColor(params.text, "color").onChange(updateMainCanvas);
+guiText.add(params.text, "content").onChange(updateTexture);
+guiText.add(params.text, "font").onChange(updateTexture);
+guiText.add(params.text, "size", 1, 100).onChange(updateTexture);
+guiText.addColor(params.text, "color").onChange(updateTexture);
 
 gui.remember(params.mob);
 gui.remember(params.map);
+gui.remember(params.text);
+
 
 // hide initially
 gui.domElement.classList.toggle('hidden');
