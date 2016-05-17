@@ -206,6 +206,9 @@ function drawText() {
 		ctx.fillStyle = "rgb("+c[0]+","+c[1]+","+c[2]+")";
 	}
 	ctx.fillText(params.text.content, 5, TILE_SIZE/2 + params.text.size/4); 
+	ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+	ctx.lineWidth = 3;
+	ctx.strokeText(params.text.content, 5, TILE_SIZE/2 + params.text.size/4)
 }
 
 function updateMainCanvas() {
