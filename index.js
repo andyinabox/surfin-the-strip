@@ -21,6 +21,8 @@ var tileSources = {
 
 var keyHandler = new KeyListener();
 
+var TILE_SIZE = 256;
+
 
 var params = {
 	gen: {
@@ -146,6 +148,7 @@ function mobius3d(u, t) {
 		return new THREE.Vector3(x, y, z);
 	}
 var canvas = document.createElement('canvas');
+var tmpCanvas = document.createElement('canvas');
 var texture = new THREE.Texture();
 texture.minFilter = THREE.LinearFilter;
 texture.generateMipmap = false;
@@ -201,17 +204,57 @@ function updateGeometry() {
 }
 
 function updateTexture() {
+	// updateMainCanvas();
 	tileGrabber(
-		canvas,
+		tmpCanvas,
 		params.map.lon,
 		params.map.lat,
 		params.map.zoom,
+		TILE_SIZE,
 		params.map.tileCount,
 		params.map.tileSource
 	).on('progress', function(evt) {
+		updateMainCanvas();
 		texture.needsUpdate = true;
 	})
 	.on('complete', function() {
+		updateMainCanvas();
 		texture.needsUpdate = true;
 	})
 }
+
+function updateMainCanvas() {
+	console.log('updateMainCanvas');
+	canvas.width = TILE_SIZE * (params.map.tileCount/2);
+	canvas.height = TILE_SIZE * 2;
+
+	var ctx = canvas.getContext("2d");
+
+	// ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+	// draw first half in the middle
+	ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height, 0, TILE_SIZE/2, canvas.width, canvas.height);
+
+	ctx.save();
+
+		// rotate 90deg
+		ctx.translate(canvas.width/2, canvas.height/2);
+		ctx.rotate(Math.PI);
+		ctx.translate(-canvas.width/2, -canvas.height/2);
+
+		// draw second half
+		ctx.drawImage(tmpCanvas, 
+			canvas.width, 0,
+			canvas.width, canvas.height,
+			0, -TILE_SIZE/2,
+			canvas.width, canvas.height
+			);
+		ctx.drawImage(tmpCanvas, 
+			canvas.width, 0,
+			canvas.width, canvas.height,
+			0, TILE_SIZE * 1.5,
+			canvas.width, canvas.height
+			);
+	ctx.restore();
+}
+

@@ -1,20 +1,19 @@
 var Emitter = require('events').EventEmitter;
 var tilebelt = require('tilebelt');
-var TILE_SIZE = 256;
 
 function tileUrl(base, x, y, z) {
 	return base + z + '/' + x + '/' + y + '.png';
 }
 
-module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
+module.exports = function(canvas, lon, lat, zoom, tileSize, tileCount, tileBase) {
 	var ctx
 		, xy = tilebelt.pointToTile(lon, lat, zoom)
 		, emitter = new Emitter()
 		, images = [];
 
 	// set canvas dimensions
-	canvas.width = TILE_SIZE * tileCount/2;
-	canvas.height = TILE_SIZE * 2;
+	canvas.width = tileSize * tileCount;
+	canvas.height = tileSize;
 	ctx = canvas.getContext('2d');
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -29,13 +28,8 @@ module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
 	images.forEach(function(img, i) {
 		img.crossOrigin = "anonymous";
 		img.onload = function() {
-			if(i >= tileCount/2) {
-				ctx.drawImage(img, TILE_SIZE*(i-(tileCount/2)), -TILE_SIZE/2);
-				ctx.drawImage(img, TILE_SIZE*(i-(tileCount/2)), TILE_SIZE * 1.5);
-			} else {
-				ctx.drawImage(img, TILE_SIZE*i, TILE_SIZE/2);
-			}
 
+			ctx.drawImage(img, tileSize*i, 0);
 			loaded++;
 
 			emitter.emit('progress', {
