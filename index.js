@@ -47,46 +47,16 @@ var params = {
 		getCurrent: getCurrentLocation,
 		tileSource: tileSources['satellite'],
 		tileCount: 32
+	},
+	text: {
+		content: "surfin' the strip!",
+		size: 70,
+		font: "Helvetica",
+		color: [255, 255, 255]
 	}
 
 }
 
-var presets = {
-	equator: {
-		mob: {
-			slices: 40,
-			stacks: 40,
-			radius: 4,
-			stripWidth: 1,
-			flatness: 0.1,
-			wireframe: false		
-		},
-		map: {
-			zoom: 6,
-			lat: 0,
-			lon: 0,
-			tileSource: tileSources['satellite'],
-			tileCount: 32
-		}		
-	},
-	la: {
-		mob: {
-			slices: 40,
-			stacks: 40,
-			radius: 4,
-			stripWidth: 1,
-			flatness: 0.1,
-			wireframe: false		
-		},
-		map: {
-			zoom: 6,
-			lat: 0,
-			lon: 0,
-			tileSource: tileSources['satellite'],
-			tileCount: 32
-		}		
-	},
-}
 
 // setup gui
 var gui = new dat.GUI({
@@ -110,6 +80,12 @@ guiMap.add(params.map, 'lon').step(.000001).listen().onChange(updateTexture);
 guiMap.add(params.map, 'getCurrent');
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
 guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
+
+var guiText = gui.addFolder('Text');
+guiText.add(params.text, "content").onChange(updateMainCanvas);
+guiText.add(params.text, "font").onChange(updateMainCanvas);
+guiText.add(params.text, "size", 1, 100).onChange(updateMainCanvas);
+guiText.addColor(params.text, "color").onChange(updateMainCanvas);
 
 gui.remember(params.mob);
 gui.remember(params.map);
@@ -213,34 +189,42 @@ function updateTexture() {
 		TILE_SIZE,
 		params.map.tileCount,
 		params.map.tileSource
-	).on('progress', function(evt) {
-		updateMainCanvas();
-		texture.needsUpdate = true;
-	})
-	.on('complete', function() {
-		updateMainCanvas();
-		texture.needsUpdate = true;
-	})
+	)
+	.on('progress', updateMainCanvas)
+	.on('complete', updateMainCanvas);
+}
+
+
+function drawText() {
+	var ctx = tmpCanvas.getContext("2d");
+	ctx.font = params.text.size+"px "+params.text.font;
+	var c = params.text.color;
+	if(typeof c === 'string') {
+		ctx.fillStyle = c;
+	} else {
+		ctx.fillStyle = "rgb("+c[0]+","+c[1]+","+c[2]+")";
+	}
+	ctx.fillText(params.text.content, 5, TILE_SIZE/2 + params.text.size/4); 
 }
 
 function updateMainCanvas() {
-	console.log('updateMainCanvas');
 	canvas.width = TILE_SIZE * (params.map.tileCount/2);
 	canvas.height = TILE_SIZE * 2;
 
-	var ctx = canvas.getContext("2d");
+	drawText();
 
+	var ctx = canvas.getContext("2d");
 	// ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	// draw first half in the middle
 	ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height, 0, TILE_SIZE/2, canvas.width, canvas.height);
 
-	ctx.save();
+	// ctx.save();
 
-		// rotate 90deg
-		ctx.translate(canvas.width/2, canvas.height/2);
-		ctx.rotate(Math.PI);
-		ctx.translate(-canvas.width/2, -canvas.height/2);
+	// 	// rotate 90deg
+	// 	ctx.translate(canvas.width/2, canvas.height/2);
+	// 	ctx.rotate(Math.PI);
+	// 	ctx.translate(-canvas.width/2, -canvas.height/2);
 
 		// draw second half
 		ctx.drawImage(tmpCanvas, 
@@ -255,6 +239,10 @@ function updateMainCanvas() {
 			0, TILE_SIZE * 1.5,
 			canvas.width, canvas.height
 			);
-	ctx.restore();
+	// ctx.restore();
+
+	texture.needsUpdate = true;
+
+
 }
 
