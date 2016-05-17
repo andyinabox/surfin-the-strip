@@ -22,6 +22,8 @@ var tileSources = {
 
 var keyHandler = new KeyListener();
 
+var TILE_SIZE = 256;
+
 
 var params = {
 	gen: {
@@ -35,7 +37,7 @@ var params = {
 		slices: 40,
 		stacks: 40,
 		radius: 4,
-		stripWidth: 1,
+		stripWidth: 0.7,
 		flatness: 0.1,
 		wireframe: false		
 	},
@@ -46,46 +48,16 @@ var params = {
 		getCurrent: getCurrentLocation,
 		tileSource: tileSources['satellite'],
 		tileCount: 32
+	},
+	text: {
+		content: "I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that ",
+		size: 72,
+		font: "Helvetica",
+		color: [255, 255, 255]
 	}
 
 }
 
-var presets = {
-	equator: {
-		mob: {
-			slices: 40,
-			stacks: 40,
-			radius: 4,
-			stripWidth: 1,
-			flatness: 0.1,
-			wireframe: false		
-		},
-		map: {
-			zoom: 6,
-			lat: 0,
-			lon: 0,
-			tileSource: tileSources['satellite'],
-			tileCount: 32
-		}		
-	},
-	la: {
-		mob: {
-			slices: 40,
-			stacks: 40,
-			radius: 4,
-			stripWidth: 1,
-			flatness: 0.1,
-			wireframe: false		
-		},
-		map: {
-			zoom: 6,
-			lat: 0,
-			lon: 0,
-			tileSource: tileSources['satellite'],
-			tileCount: 32
-		}		
-	},
-}
 
 // setup gui
 var gui = new dat.GUI({
@@ -109,9 +81,16 @@ guiMap.add(params.map, 'lon').step(.000001).listen().onChange(updateTexture);
 guiMap.add(params.map, 'getCurrent');
 guiMap.add(params.map, 'tileSource', tileSources).onChange(updateTexture);
 guiMap.add(params.map, 'tileCount', 0, 32).step(2).onChange(updateTexture);
+var guiText = gui.addFolder('Text');
+guiText.add(params.text, "content").onChange(updateTexture);
+guiText.add(params.text, "font").onChange(updateTexture);
+guiText.add(params.text, "size", 1, 100).onChange(updateTexture);
+guiText.addColor(params.text, "color").onChange(updateTexture);
 
 gui.remember(params.mob);
 gui.remember(params.map);
+gui.remember(params.text);
+
 
 // hide initially
 gui.domElement.classList.toggle('hidden');
@@ -147,6 +126,7 @@ function mobius3d(u, t) {
 		return new THREE.Vector3(x, y, z);
 	}
 var canvas = document.createElement('canvas');
+var tmpCanvas = document.createElement('canvas');
 var texture = new THREE.Texture();
 texture.minFilter = THREE.LinearFilter;
 texture.generateMipmap = false;
@@ -202,20 +182,72 @@ function updateGeometry() {
 }
 
 function updateTexture() {
+	// updateMainCanvas();
 	tileGrabber(
-		canvas,
+		tmpCanvas,
 		params.map.lon,
 		params.map.lat,
 		params.map.zoom,
+		TILE_SIZE,
 		params.map.tileCount,
 		params.map.tileSource
-	).on('progress', function(evt) {
-		texture.needsUpdate = true;
-	})
-	.on('complete', function() {
-		texture.needsUpdate = true;
-	})
+	)
+	.on('progress', updateMainCanvas)
+	.on('complete', updateMainCanvas);
 }
+
+
+function drawText() {
+	var ctx = tmpCanvas.getContext("2d");
+	ctx.font = params.text.size+"px "+params.text.font;
+	var c = params.text.color;
+	if(typeof c === 'string') {
+		ctx.fillStyle = c;
+	} else {
+		ctx.fillStyle = "rgb("+c[0]+","+c[1]+","+c[2]+")";
+	}
+	ctx.fillText(params.text.content, 5, TILE_SIZE/2 + params.text.size/4); 
+}
+
+function updateMainCanvas() {
+	canvas.width = TILE_SIZE * (params.map.tileCount/2);
+	canvas.height = TILE_SIZE * 2;
+
+	drawText();
+
+	var ctx = canvas.getContext("2d");
+	// ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+	// draw first half in the middle
+	ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height, 0, TILE_SIZE/2, canvas.width, canvas.height);
+
+	// ctx.save();
+
+	// 	// rotate 90deg
+	// 	ctx.translate(canvas.width/2, canvas.height/2);
+	// 	ctx.rotate(Math.PI);
+	// 	ctx.translate(-canvas.width/2, -canvas.height/2);
+
+		// draw second half
+		ctx.drawImage(tmpCanvas, 
+			canvas.width, 0,
+			canvas.width, canvas.height,
+			0, -TILE_SIZE/2,
+			canvas.width, canvas.height
+			);
+		ctx.drawImage(tmpCanvas, 
+			canvas.width, 0,
+			canvas.width, canvas.height,
+			0, TILE_SIZE * 1.5,
+			canvas.width, canvas.height
+			);
+	// ctx.restore();
+
+	texture.needsUpdate = true;
+
+
+}
+
 
 },{"./settings.json":43,"./tile-grabber":44,"exdat":25,"geolocation":26,"key-listener":29,"three":41,"three-orbit-viewer":30}],2:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
@@ -47897,21 +47929,20 @@ module.exports={
 },{}],44:[function(require,module,exports){
 var Emitter = require('events').EventEmitter;
 var tilebelt = require('tilebelt');
-var TILE_SIZE = 256;
 
 function tileUrl(base, x, y, z) {
 	return base + z + '/' + x + '/' + y + '.png';
 }
 
-module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
+module.exports = function(canvas, lon, lat, zoom, tileSize, tileCount, tileBase) {
 	var ctx
 		, xy = tilebelt.pointToTile(lon, lat, zoom)
 		, emitter = new Emitter()
 		, images = [];
 
 	// set canvas dimensions
-	canvas.width = TILE_SIZE * tileCount/2;
-	canvas.height = TILE_SIZE * 2;
+	canvas.width = tileSize * tileCount;
+	canvas.height = tileSize;
 	ctx = canvas.getContext('2d');
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -47926,13 +47957,8 @@ module.exports = function(canvas, lon, lat, zoom, tileCount, tileBase) {
 	images.forEach(function(img, i) {
 		img.crossOrigin = "anonymous";
 		img.onload = function() {
-			if(i >= tileCount/2) {
-				ctx.drawImage(img, TILE_SIZE*(i-(tileCount/2)), -TILE_SIZE/2);
-				ctx.drawImage(img, TILE_SIZE*(i-(tileCount/2)), TILE_SIZE * 1.5);
-			} else {
-				ctx.drawImage(img, TILE_SIZE*i, TILE_SIZE/2);
-			}
 
+			ctx.drawImage(img, tileSize*i, 0);
 			loaded++;
 
 			emitter.emit('progress', {
