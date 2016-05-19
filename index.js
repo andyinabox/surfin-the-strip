@@ -49,7 +49,8 @@ var params = {
 		tileCount: 32
 	},
 	text: {
-		content: "I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that ",
+		content: "",
+		// content: "I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that I am that I am and that's all that ",
 		size: 72,
 		font: "Helvetica",
 		color: [255, 255, 255]
