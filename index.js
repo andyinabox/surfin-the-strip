@@ -10,7 +10,6 @@ var settings = require('./settings.json');
 var tileGrabber = require('./tile-grabber');
 
 var tileSources = {
-	'landscape': 'http://a.tile.thunderforest.com/landscape/',
 	// 'satellite': 'http://otile1.mqcdn.com/tiles/1.0.0/sat/',
 	'osm' : 'http://a.tile.openstreetmap.org/',
 	'toner' : 'http://a.tile.stamen.com/toner/',
@@ -18,6 +17,7 @@ var tileSources = {
 	'bw-mapnik' : 'http://a.tiles.wmflabs.org/bw-mapnik/',
 	'cartodb-light': 'http://a.basemaps.cartocdn.com/light_all/',
 	'cartodb-dark': 'http://a.basemaps.cartocdn.com/dark_all/',
+	'landscape': 'http://a.tile.thunderforest.com/landscape/'
 }
 
 var keyHandler = new KeyListener();
@@ -46,7 +46,7 @@ var params = {
 		lat: 0,
 		lon: 0,
 		getCurrent: getCurrentLocation,
-		tileSource: tileSources['satellite'],
+		tileSource: tileSources['landscape'],
 		tileCount: 32
 	},
 	text: {
