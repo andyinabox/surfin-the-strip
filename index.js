@@ -10,14 +10,14 @@ var settings = require('./settings.json');
 var tileGrabber = require('./tile-grabber');
 
 var tileSources = {
-	'satellite': 'http://otile1.mqcdn.com/tiles/1.0.0/sat/',
+	'landscape': 'http://a.tile.thunderforest.com/landscape/',
+	// 'satellite': 'http://otile1.mqcdn.com/tiles/1.0.0/sat/',
 	'osm' : 'http://a.tile.openstreetmap.org/',
 	'toner' : 'http://a.tile.stamen.com/toner/',
 	'watercolor' : 'http://c.tile.stamen.com/watercolor/',
 	'bw-mapnik' : 'http://a.tiles.wmflabs.org/bw-mapnik/',
 	'cartodb-light': 'http://a.basemaps.cartocdn.com/light_all/',
 	'cartodb-dark': 'http://a.basemaps.cartocdn.com/dark_all/',
-	'landscape': 'http://a.tile.thunderforest.com/landscape/'
 }
 
 var keyHandler = new KeyListener();
