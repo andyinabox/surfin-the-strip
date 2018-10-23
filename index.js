@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var THREE = require('three');
 var createOrbitViewer = require('three-orbit-viewer')(THREE);
 var dat = require('exdat');
@@ -94,7 +94,7 @@ gui.remember(params.text);
 
 
 // hide initially
-gui.domElement.classList.toggle('hidden');
+// gui.domElement.classList.toggle('hidden');
 
 var app = createOrbitViewer({
   clearColor: 0x000000,
@@ -253,7 +253,522 @@ function updateMainCanvas() {
 }
 
 
-},{"./settings.json":43,"./tile-grabber":44,"exdat":25,"geolocation":26,"key-listener":29,"three":41,"three-orbit-viewer":30}],2:[function(require,module,exports){
+},{"./settings.json":41,"./tile-grabber":42,"exdat":30,"geolocation":31,"key-listener":34,"three":38,"three-orbit-viewer":37}],2:[function(require,module,exports){
+addEventListener.removeEventListener = removeEventListener
+addEventListener.addEventListener = addEventListener
+
+module.exports = addEventListener
+
+var Events = null
+
+function addEventListener(el, eventName, listener, useCapture) {
+  Events = Events || (
+    document.addEventListener ?
+    {add: stdAttach, rm: stdDetach} :
+    {add: oldIEAttach, rm: oldIEDetach}
+  )
+  
+  return Events.add(el, eventName, listener, useCapture)
+}
+
+function removeEventListener(el, eventName, listener, useCapture) {
+  Events = Events || (
+    document.addEventListener ?
+    {add: stdAttach, rm: stdDetach} :
+    {add: oldIEAttach, rm: oldIEDetach}
+  )
+  
+  return Events.rm(el, eventName, listener, useCapture)
+}
+
+function stdAttach(el, eventName, listener, useCapture) {
+  el.addEventListener(eventName, listener, useCapture)
+}
+
+function stdDetach(el, eventName, listener, useCapture) {
+  el.removeEventListener(eventName, listener, useCapture)
+}
+
+function oldIEAttach(el, eventName, listener, useCapture) {
+  if(useCapture) {
+    throw new Error('cannot useCapture in oldIE')
+  }
+
+  el.attachEvent('on' + eventName, listener)
+}
+
+function oldIEDetach(el, eventName, listener, useCapture) {
+  el.detachEvent('on' + eventName, listener)
+}
+
+},{}],3:[function(require,module,exports){
+module.exports = function numtype(num, def) {
+	return typeof num === 'number'
+		? num 
+		: (typeof def === 'number' ? def : 0)
+}
+},{}],4:[function(require,module,exports){
+var isGL = require('is-webgl-context');
+var getGL = require('webgl-context');
+var debounce = require('debounce');
+var addEvent = require('add-event-listener');
+
+function isCanvasContext(obj) {
+    var ctx2d = typeof CanvasRenderingContext2D !== 'undefined' && obj instanceof CanvasRenderingContext2D;
+    return obj && (ctx2d || isGL(obj));
+}
+
+function CanvasApp(render, options) {
+    if (!(this instanceof CanvasApp))
+        return new CanvasApp(render, options);
+
+    //allow options to be passed as first argument
+    if (typeof render === 'object' && render) {
+        options = render;
+        render = null;
+    }
+
+    render = typeof render === 'function' ? render : options.onRender;
+
+    options = options||{};
+    options.retina = typeof options.retina === "boolean" ? options.retina : true;
+    
+    var hasWidth = typeof options.width === "number", 
+        hasHeight = typeof options.height === "number";
+
+    //if either width or height is specified, don't auto-resize to the window...
+    if (hasWidth || hasHeight) 
+        options.ignoreResize = true;
+
+    options.width = hasWidth ? options.width : window.innerWidth;
+    options.height = hasHeight ? options.height : window.innerHeight;
+
+    var DPR = options.retina ? (window.devicePixelRatio||1) : 1; 
+
+    //setup the canvas
+    var canvas,
+        context,
+        attribs = options.contextAttributes||{};
+
+    this.isWebGL = false;
+
+    //if user provided a context object
+    if (isCanvasContext(options.context)) {
+        context = options.context;
+        canvas = context.canvas;
+    }
+
+    //otherwise allow for a string to set one up
+    if (!canvas)
+        canvas = options.canvas || document.createElement("canvas");
+
+    canvas.width = options.width * DPR;
+    canvas.height = options.height * DPR;
+
+    if (!context) {
+        if (options.context === "webgl" || options.context === "experimental-webgl") {
+            context = getGL({ canvas: canvas, attributes: attribs });
+            if (!context) {
+                throw "WebGL Context Not Supported -- try enabling it or using a different browser";
+            }
+        } else {
+            context = canvas.getContext(options.context||"2d", attribs);
+        }
+    }
+
+    this.isWebGL = isGL(context);
+
+    if (options.retina) {
+        canvas.style.width = options.width + 'px';
+        canvas.style.height = options.height + 'px';
+    }
+
+    this.running = false;
+    this.width = options.width;
+    this.height = options.height;
+    this.canvas = canvas;
+    this.context = context;
+    this.onResize = options.onResize;
+    this._DPR = DPR;
+    this._retina = options.retina;
+    this._once = options.once;
+    this._ignoreResize = options.ignoreResize;
+    this._lastFrame = null;
+    this._then = Date.now();
+    this.maxDeltaTime = typeof options.maxDeltaTime === 'number' ? options.maxDeltaTime : 1000/24;
+
+    //FPS counter
+    this.fps = 60;
+    this._frames = 0;
+    this._prevTime = this._then;
+
+    if (!this._ignoreResize) {
+        options.resizeDebounce = typeof options.resizeDebounce === 'number'
+                    ? options.resizeDebounce : 50;
+        addEvent(window, "resize", debounce(function() {
+            this.resize(window.innerWidth, window.innerHeight);
+        }.bind(this), options.resizeDebounce, false));
+
+        addEvent(window, "orientationchange", function() {
+            this.resize(window.innerWidth, window.innerHeight);
+        }.bind(this));
+    }
+
+    if (typeof render === "function") {
+        this.onRender = render.bind(this);   
+    } else {
+        //dummy render function
+        this.onRender = function (context, width, height, dt) { };
+    }
+
+    this.renderOnce = function() {
+        var now = Date.now();
+        var dt = Math.min(this.maxDeltaTime, (now-this._then));
+
+        this._frames++;
+        if (now > this._prevTime + 1000) {
+            this.fps = Math.round((this._frames * 1000) / (now - this._prevTime));
+
+            this._prevTime = now;
+            this._frames = 0;
+        }
+
+        if (!this.isWebGL) {
+            this.context.save();
+            this.context.scale(this._DPR, this._DPR);
+        } else {
+            this.context.viewport(0, 0, this.width * this._DPR, this.height * this._DPR);
+        }
+        
+        this.onRender(this.context, this.width, this.height, dt);
+
+        if (!this.isWebGL)
+            this.context.restore();
+
+        this._then = now;
+    };
+
+    this._renderHandler = function() {
+        if (!this.running) 
+            return;
+        
+        if (!this._once) {
+            this._lastFrame = requestAnimationFrame(this._renderHandler);
+        }
+
+        this.renderOnce();
+    }.bind(this);
+
+    if (typeof options.onReady === "function") {
+        options.onReady.call(this, context, this.width, this.height);
+    }
+}
+
+Object.defineProperty(CanvasApp.prototype, 'retinaEnabled', {
+
+    set: function(v) {
+        this._retina = v;
+        this._DPR = this._retina ? (window.devicePixelRatio||1) : 1;
+        this.resize(this.width, this.height);
+    },
+
+    get: function() {
+        return this._retina;
+    }
+});
+
+Object.defineProperty(CanvasApp.prototype, 'deviceWidth', {
+
+    get: function() {
+        return this.width * this._DPR;
+    }
+});
+
+Object.defineProperty(CanvasApp.prototype, 'deviceHeight', {
+
+    get: function() {
+        return this.height * this._DPR;
+    }
+});
+
+CanvasApp.prototype.resetFPS = function() {
+    this._frames = 0;
+    this._prevTime = Date.now();
+    this._then = this._prevTime;
+    this.fps = 60;
+};
+
+CanvasApp.prototype.start = function() {
+    if (this.running)
+        return;
+    
+    if (this._lastFrame) 
+        cancelAnimationFrame(this._lastFrame);
+
+    //reset FPS counter
+    this.resetFPS();
+
+    this.running = true;
+    this._lastFrame = requestAnimationFrame(this._renderHandler);
+};
+
+CanvasApp.prototype.stop = function() {
+    if (this._lastFrame) {
+        cancelAnimationFrame(this._lastFrame);
+        this._lastFrame = null;
+    }
+    this.running = false;
+};
+
+CanvasApp.prototype.resize = function(width, height) {
+    var canvas = this.canvas;
+
+    this.width = width;
+    this.height = height;
+    canvas.width = this.width * this._DPR;
+    canvas.height = this.height * this._DPR;
+
+    if (this._retina) {
+        canvas.style.width = this.width + 'px';
+        canvas.style.height = this.height + 'px';
+    }
+
+    if (this._once)
+        requestAnimationFrame(this._renderHandler);
+    if (typeof this.onResize === "function")
+        this.onResize(this.width, this.height);
+};
+
+module.exports = CanvasApp;
+},{"add-event-listener":2,"debounce":6,"is-webgl-context":33,"webgl-context":5}],5:[function(require,module,exports){
+module.exports = function(opts) {
+    opts = opts||{};
+    var canvas = opts.canvas || document.createElement("canvas");
+    if (typeof opts.width === "number")
+        canvas.width = opts.width;
+    if (typeof opts.height === "number")
+        canvas.height = opts.height;
+    
+    var attribs = (opts.attributes || opts.attribs || {});
+    try {
+        gl = (canvas.getContext('webgl', attribs) || canvas.getContext('experimental-webgl', attribs));
+    } catch (e) {
+        gl = null;
+    }
+    return gl;
+};
+},{}],6:[function(require,module,exports){
+/**
+ * Returns a function, that, as long as it continues to be invoked, will not
+ * be triggered. The function will be called after it stops being called for
+ * N milliseconds. If `immediate` is passed, trigger the function on the
+ * leading edge, instead of the trailing. The function also has a property 'clear' 
+ * that is a function which will clear the timer to prevent previously scheduled executions. 
+ *
+ * @source underscore.js
+ * @see http://unscriptable.com/2009/03/20/debouncing-javascript-methods/
+ * @param {Function} function to wrap
+ * @param {Number} timeout in ms (`100`)
+ * @param {Boolean} whether to execute at the beginning (`false`)
+ * @api public
+ */
+function debounce(func, wait, immediate){
+  var timeout, args, context, timestamp, result;
+  if (null == wait) wait = 100;
+
+  function later() {
+    var last = Date.now() - timestamp;
+
+    if (last < wait && last >= 0) {
+      timeout = setTimeout(later, wait - last);
+    } else {
+      timeout = null;
+      if (!immediate) {
+        result = func.apply(context, args);
+        context = args = null;
+      }
+    }
+  };
+
+  var debounced = function(){
+    context = this;
+    args = arguments;
+    timestamp = Date.now();
+    var callNow = immediate && !timeout;
+    if (!timeout) timeout = setTimeout(later, wait);
+    if (callNow) {
+      result = func.apply(context, args);
+      context = args = null;
+    }
+
+    return result;
+  };
+
+  debounced.clear = function() {
+    if (timeout) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+  
+  debounced.flush = function() {
+    if (timeout) {
+      result = func.apply(context, args);
+      context = args = null;
+      
+      clearTimeout(timeout);
+      timeout = null;
+    }
+  };
+
+  return debounced;
+};
+
+// Adds compatibility for ES modules
+debounce.debounce = debounce;
+
+module.exports = debounce;
+
+},{}],7:[function(require,module,exports){
+
+/**
+ * Expose `debug()` as the module.
+ */
+
+module.exports = debug;
+
+/**
+ * Create a debugger with the given `name`.
+ *
+ * @param {String} name
+ * @return {Type}
+ * @api public
+ */
+
+function debug(name) {
+  if (!debug.enabled(name)) return function(){};
+
+  return function(fmt){
+    fmt = coerce(fmt);
+
+    var curr = new Date;
+    var ms = curr - (debug[name] || curr);
+    debug[name] = curr;
+
+    fmt = name
+      + ' '
+      + fmt
+      + ' +' + debug.humanize(ms);
+
+    // This hackery is required for IE8
+    // where `console.log` doesn't have 'apply'
+    window.console
+      && console.log
+      && Function.prototype.apply.call(console.log, console, arguments);
+  }
+}
+
+/**
+ * The currently active debug mode names.
+ */
+
+debug.names = [];
+debug.skips = [];
+
+/**
+ * Enables a debug mode by name. This can include modes
+ * separated by a colon and wildcards.
+ *
+ * @param {String} name
+ * @api public
+ */
+
+debug.enable = function(name) {
+  try {
+    localStorage.debug = name;
+  } catch(e){}
+
+  var split = (name || '').split(/[\s,]+/)
+    , len = split.length;
+
+  for (var i = 0; i < len; i++) {
+    name = split[i].replace('*', '.*?');
+    if (name[0] === '-') {
+      debug.skips.push(new RegExp('^' + name.substr(1) + '$'));
+    }
+    else {
+      debug.names.push(new RegExp('^' + name + '$'));
+    }
+  }
+};
+
+/**
+ * Disable debug output.
+ *
+ * @api public
+ */
+
+debug.disable = function(){
+  debug.enable('');
+};
+
+/**
+ * Humanize the given `ms`.
+ *
+ * @param {Number} m
+ * @return {String}
+ * @api private
+ */
+
+debug.humanize = function(ms) {
+  var sec = 1000
+    , min = 60 * 1000
+    , hour = 60 * min;
+
+  if (ms >= hour) return (ms / hour).toFixed(1) + 'h';
+  if (ms >= min) return (ms / min).toFixed(1) + 'm';
+  if (ms >= sec) return (ms / sec | 0) + 's';
+  return ms + 'ms';
+};
+
+/**
+ * Returns true if the given mode name is enabled, false otherwise.
+ *
+ * @param {String} name
+ * @return {Boolean}
+ * @api public
+ */
+
+debug.enabled = function(name) {
+  for (var i = 0, len = debug.skips.length; i < len; i++) {
+    if (debug.skips[i].test(name)) {
+      return false;
+    }
+  }
+  for (var i = 0, len = debug.names.length; i < len; i++) {
+    if (debug.names[i].test(name)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Coerce `val`.
+ */
+
+function coerce(val) {
+  if (val instanceof Error) return val.stack || val.message;
+  return val;
+}
+
+// persist
+
+try {
+  if (window.localStorage) debug.enable(localStorage.debug);
+} catch(e){}
+
+},{}],8:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -313,8 +828,12 @@ EventEmitter.prototype.emit = function(type) {
       er = arguments[1];
       if (er instanceof Error) {
         throw er; // Unhandled 'error' event
+      } else {
+        // At least give some kind of context to the user
+        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
+        err.context = er;
+        throw err;
       }
-      throw TypeError('Uncaught, unspecified "error" event.');
     }
   }
 
@@ -553,103 +1072,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],3:[function(require,module,exports){
-// shim for using process in browser
-
-var process = module.exports = {};
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = setTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    clearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        setTimeout(drainQueue, 0);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
-
-},{}],4:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -832,7 +1255,7 @@ function recalculateHSV(color) {
 
 }
 
-},{"../utils/common.js":21,"./interpret.js":5,"./math.js":6,"./toString.js":7}],5:[function(require,module,exports){
+},{"../utils/common.js":26,"./interpret.js":10,"./math.js":11,"./toString.js":12}],10:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1175,7 +1598,7 @@ function createInterpert() {
 
 }
 
-},{"../utils/common.js":21,"./toString.js":7}],6:[function(require,module,exports){
+},{"../utils/common.js":26,"./toString.js":12}],11:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1276,7 +1699,7 @@ function math() {
   };
 }
 
-},{}],7:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1313,7 +1736,7 @@ function toString(color) {
 
 }
 
-},{"../utils/common.js":21}],8:[function(require,module,exports){
+},{"../utils/common.js":26}],13:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1397,7 +1820,7 @@ common.extend(
   }
 );
 
-},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],9:[function(require,module,exports){
+},{"../dom/dom.js":24,"../utils/common.js":26,"./Controller.js":15}],14:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1718,7 +2141,7 @@ function hueGradient(elem) {
   elem.style.cssText += 'background: linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);'
 }
 
-},{"../color/Color.js":4,"../color/interpret.js":5,"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],10:[function(require,module,exports){
+},{"../color/Color.js":9,"../color/interpret.js":10,"../dom/dom.js":24,"../utils/common.js":26,"./Controller.js":15}],15:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1859,7 +2282,7 @@ common.extend(
 );
 
 
-},{"../utils/common.js":21,"../utils/escapeHtml.js":23}],11:[function(require,module,exports){
+},{"../utils/common.js":26,"../utils/escapeHtml.js":28}],16:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -1929,7 +2352,7 @@ common.extend(
 
 );
 
-},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],12:[function(require,module,exports){
+},{"../dom/dom.js":24,"../utils/common.js":26,"./Controller.js":15}],17:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2071,7 +2494,7 @@ function numDecimals(x) {
   }
 }
 
-},{"../utils/common.js":21,"./Controller.js":10}],13:[function(require,module,exports){
+},{"../utils/common.js":26,"./Controller.js":15}],18:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2202,7 +2625,7 @@ function roundToDecimal(value, decimals) {
   return Math.round(value * tenTo) / tenTo;
 }
 
-},{"../dom/dom.js":19,"../utils/common.js":21,"./NumberController.js":12}],14:[function(require,module,exports){
+},{"../dom/dom.js":24,"../utils/common.js":26,"./NumberController.js":17}],19:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2332,7 +2755,7 @@ function map(v, i1, i2, o1, o2) {
   return o1 + (o2 - o1) * ((v - i1) / (i2 - i1));
 }
 
-},{"../dom/dom.js":19,"../utils/common.js":21,"../utils/css.js":22,"./NumberController.js":12}],15:[function(require,module,exports){
+},{"../dom/dom.js":24,"../utils/common.js":26,"../utils/css.js":27,"./NumberController.js":17}],20:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2432,7 +2855,7 @@ common.extend(
 
 );
 
-},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],16:[function(require,module,exports){
+},{"../dom/dom.js":24,"../utils/common.js":26,"./Controller.js":15}],21:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2519,7 +2942,7 @@ common.extend(
 
 );
 
-},{"../dom/dom.js":19,"../utils/common.js":21,"./Controller.js":10}],17:[function(require,module,exports){
+},{"../dom/dom.js":24,"../utils/common.js":26,"./Controller.js":15}],22:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2585,7 +3008,7 @@ function factory(object, property) {
 
 }
 
-},{"../utils/common.js":21,"./BooleanController.js":8,"./FunctionController.js":11,"./NumberControllerBox.js":13,"./NumberControllerSlider.js":14,"./OptionController.js":15,"./StringController.js":16}],18:[function(require,module,exports){
+},{"../utils/common.js":26,"./BooleanController.js":13,"./FunctionController.js":16,"./NumberControllerBox.js":18,"./NumberControllerSlider.js":19,"./OptionController.js":20,"./StringController.js":21}],23:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2699,7 +3122,7 @@ function lockScroll(e) {
   console.log(e);
 }
 
-},{"../utils/common.js":21,"./dom.js":19}],19:[function(require,module,exports){
+},{"../utils/common.js":26,"./dom.js":24}],24:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -2986,7 +3409,7 @@ var dom = {
 
 module.exports = dom;
 
-},{"../utils/common.js":21}],20:[function(require,module,exports){
+},{"../utils/common.js":26}],25:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4388,7 +4811,7 @@ function createGUI() {
   return GUI;
 }
 
-},{"../controllers/BooleanController.js":8,"../controllers/ColorController.js":9,"../controllers/Controller.js":10,"../controllers/FunctionController.js":11,"../controllers/NumberControllerBox.js":13,"../controllers/NumberControllerSlider.js":14,"../controllers/factory.js":17,"../dom/CenteredDiv.js":18,"../dom/dom.js":19,"../utils/common.js":21,"../utils/css.js":22,"../utils/requestAnimationFrame.js":24}],21:[function(require,module,exports){
+},{"../controllers/BooleanController.js":13,"../controllers/ColorController.js":14,"../controllers/Controller.js":15,"../controllers/FunctionController.js":16,"../controllers/NumberControllerBox.js":18,"../controllers/NumberControllerSlider.js":19,"../controllers/factory.js":22,"../dom/CenteredDiv.js":23,"../dom/dom.js":24,"../utils/common.js":26,"../utils/css.js":27,"../utils/requestAnimationFrame.js":29}],26:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4530,7 +4953,7 @@ function common() {
   };
 }
 
-},{}],22:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4565,7 +4988,7 @@ function css() {
   };
 }
 
-},{}],23:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 module.exports = escape;
 
 var entityMap = {
@@ -4583,7 +5006,7 @@ function escape(string) {
   });
 }
 
-},{}],24:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4616,7 +5039,7 @@ function raf() {
       };
 }
 
-},{}],25:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 /** @license
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4656,7 +5079,7 @@ module.exports = {
   GUI: require('./dat/gui/GUI.js')
 };
 
-},{"./dat/color/Color.js":4,"./dat/color/interpret.js":5,"./dat/color/math.js":6,"./dat/controllers/BooleanController.js":8,"./dat/controllers/ColorController.js":9,"./dat/controllers/Controller.js":10,"./dat/controllers/FunctionController.js":11,"./dat/controllers/NumberController.js":12,"./dat/controllers/NumberControllerBox.js":13,"./dat/controllers/NumberControllerSlider.js":14,"./dat/controllers/OptionController.js":15,"./dat/controllers/StringController.js":16,"./dat/dom/dom.js":19,"./dat/gui/GUI.js":20}],26:[function(require,module,exports){
+},{"./dat/color/Color.js":9,"./dat/color/interpret.js":10,"./dat/color/math.js":11,"./dat/controllers/BooleanController.js":13,"./dat/controllers/ColorController.js":14,"./dat/controllers/Controller.js":15,"./dat/controllers/FunctionController.js":16,"./dat/controllers/NumberController.js":17,"./dat/controllers/NumberControllerBox.js":18,"./dat/controllers/NumberControllerSlider.js":19,"./dat/controllers/OptionController.js":20,"./dat/controllers/StringController.js":21,"./dat/dom/dom.js":24,"./dat/gui/GUI.js":25}],31:[function(require,module,exports){
 (function (process){
 
 var EventEmitter = require('events').EventEmitter
@@ -4763,146 +5186,7 @@ Watcher.prototype.stop = function () {
 }
 
 }).call(this,require('_process'))
-},{"_process":3,"debug":27,"events":2,"inherits":28}],27:[function(require,module,exports){
-
-/**
- * Expose `debug()` as the module.
- */
-
-module.exports = debug;
-
-/**
- * Create a debugger with the given `name`.
- *
- * @param {String} name
- * @return {Type}
- * @api public
- */
-
-function debug(name) {
-  if (!debug.enabled(name)) return function(){};
-
-  return function(fmt){
-    fmt = coerce(fmt);
-
-    var curr = new Date;
-    var ms = curr - (debug[name] || curr);
-    debug[name] = curr;
-
-    fmt = name
-      + ' '
-      + fmt
-      + ' +' + debug.humanize(ms);
-
-    // This hackery is required for IE8
-    // where `console.log` doesn't have 'apply'
-    window.console
-      && console.log
-      && Function.prototype.apply.call(console.log, console, arguments);
-  }
-}
-
-/**
- * The currently active debug mode names.
- */
-
-debug.names = [];
-debug.skips = [];
-
-/**
- * Enables a debug mode by name. This can include modes
- * separated by a colon and wildcards.
- *
- * @param {String} name
- * @api public
- */
-
-debug.enable = function(name) {
-  try {
-    localStorage.debug = name;
-  } catch(e){}
-
-  var split = (name || '').split(/[\s,]+/)
-    , len = split.length;
-
-  for (var i = 0; i < len; i++) {
-    name = split[i].replace('*', '.*?');
-    if (name[0] === '-') {
-      debug.skips.push(new RegExp('^' + name.substr(1) + '$'));
-    }
-    else {
-      debug.names.push(new RegExp('^' + name + '$'));
-    }
-  }
-};
-
-/**
- * Disable debug output.
- *
- * @api public
- */
-
-debug.disable = function(){
-  debug.enable('');
-};
-
-/**
- * Humanize the given `ms`.
- *
- * @param {Number} m
- * @return {String}
- * @api private
- */
-
-debug.humanize = function(ms) {
-  var sec = 1000
-    , min = 60 * 1000
-    , hour = 60 * min;
-
-  if (ms >= hour) return (ms / hour).toFixed(1) + 'h';
-  if (ms >= min) return (ms / min).toFixed(1) + 'm';
-  if (ms >= sec) return (ms / sec | 0) + 's';
-  return ms + 'ms';
-};
-
-/**
- * Returns true if the given mode name is enabled, false otherwise.
- *
- * @param {String} name
- * @return {Boolean}
- * @api public
- */
-
-debug.enabled = function(name) {
-  for (var i = 0, len = debug.skips.length; i < len; i++) {
-    if (debug.skips[i].test(name)) {
-      return false;
-    }
-  }
-  for (var i = 0, len = debug.names.length; i < len; i++) {
-    if (debug.names[i].test(name)) {
-      return true;
-    }
-  }
-  return false;
-};
-
-/**
- * Coerce `val`.
- */
-
-function coerce(val) {
-  if (val instanceof Error) return val.stack || val.message;
-  return val;
-}
-
-// persist
-
-try {
-  if (window.localStorage) debug.enable(localStorage.debug);
-} catch(e){}
-
-},{}],28:[function(require,module,exports){
+},{"_process":35,"debug":7,"events":8,"inherits":32}],32:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4927,7 +5211,26 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],29:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
+/*globals WebGL2RenderingContext,WebGLRenderingContext*/
+module.exports = function isWebGLContext (ctx) {
+  if (!ctx) return false
+  var gl = ctx
+
+  // compatibility with Chrome WebGL Inspector Addon
+  if (typeof ctx.rawgl !== 'undefined') {
+    gl = ctx.rawgl
+  }
+  if ((typeof WebGLRenderingContext !== 'undefined' 
+      && gl instanceof WebGLRenderingContext) || 
+    (typeof WebGL2RenderingContext !== 'undefined'
+      && gl instanceof WebGL2RenderingContext)) {
+    return true
+  }
+  return false
+}
+
+},{}],34:[function(require,module,exports){
 module.exports = KeyListener;
 
 var keys = ['backspace','tab','enter','shift','ctrl','alt','pause/break','caps lock','escape','page up','page down','end','home','left arrow','up arrow','right arrow','down arrow','insert','delete','0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','left window key','right window key','select key','numpad 0','numpad 1','numpad 2','numpad 3','numpad 4','numpad 5','numpad 6','numpad 7','numpad 8','numpad 9','multiply','add','subtract','decimal point','divide','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11','f12','num lock','scroll lock','semi-colon','equal sign','comma','dash','period','forward slash','grave accent','open bracket','back slash','close braket','single quote'];
@@ -4967,479 +5270,193 @@ KeyListener.prototype.getKey = function(key){
     }
   }
 };
-},{}],30:[function(require,module,exports){
-var createApp = require('canvas-app')
-var createControls = require('three-orbit-controls')
-var Emitter = require('events/')
-var xtend = require('xtend')
-var number = require('as-number')
+},{}],35:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
 
-module.exports = function(THREE) {
-    var OrbitControls = createControls(THREE)
-    return function(opt) {
-        opt = opt||{}
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
 
-        var emitter = new Emitter()
+var cachedSetTimeout;
+var cachedClearTimeout;
 
-
-        var ctxAttrib = opt.contextAttributes || {}
-
-        var setup = function(gl, width, height) {
-            emitter.renderer = new THREE.WebGLRenderer(xtend(ctxAttrib, {
-                canvas: gl.canvas
-            }))
-
-            var clearColor = 0x000000
-            if (opt.clearColor || typeof opt.clearColor === 'number')
-                clearColor = opt.clearColor
-
-            var clearAlpha = opt.clearAlpha||0
-            emitter.renderer.setClearColor(clearColor, clearAlpha)
-
-            var fov = number(opt.fov, 50)
-            var near = number(opt.near, 0.1)
-            var far = number(opt.far, 1000)
-            
-            emitter.scene = new THREE.Scene()
-            emitter.camera = new THREE.PerspectiveCamera(fov, width/height, near, far)
-            
-            var position = opt.position || new THREE.Vector3(1, 1, -2)
-            var target = opt.target || new THREE.Vector3()
-
-            emitter.camera.position.copy(position)
-            emitter.camera.lookAt(target)
-
-            emitter.controls = new OrbitControls(emitter.camera, emitter.engine.canvas)
-            emitter.controls.target.copy(target)
-        }
-
-        var render = function(gl, width, height, dt) {
-            emitter.emit('tick', dt)
-            emitter.renderer.render(emitter.scene, emitter.camera)
-            emitter.emit('render', dt)
-        }
-
-        var resize = function(width, height) {
-            if (!emitter.renderer)
-                return
-
-            emitter.renderer.setSize(width, height)
-            emitter.camera.aspect = width/height
-            emitter.camera.updateProjectionMatrix()
-
-            emitter.emit('resize', width, height)
-        }
-
-
-        var engine = createApp(render, xtend(opt, { 
-            context: 'webgl',
-            onResize: resize
-        }))
-        emitter.engine = engine
-        
-        document.body.appendChild(engine.canvas)
-        document.body.style.margin = "0"
-        document.body.style.overflow = "hidden"
-        
-        setup(engine.context, engine.width, engine.height)
-        if (typeof emitter.renderer.setPixelRatio === 'function') //r70
-            emitter.renderer.setPixelRatio(engine._DPR)
-        else if (typeof emitter.renderer.devicePixelRatio === 'number') //r69
-            emitter.renderer.devicePixelRatio = engine._DPR
-        
-        engine.start()
-
-        return emitter
-    }
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
 }
-},{"as-number":31,"canvas-app":32,"events/":38,"three-orbit-controls":39,"xtend":40}],31:[function(require,module,exports){
-module.exports = function numtype(num, def) {
-	return typeof num === 'number'
-		? num 
-		: (typeof def === 'number' ? def : 0)
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
 }
-},{}],32:[function(require,module,exports){
-var isGL = require('is-webgl-context');
-var getGL = require('webgl-context');
-var debounce = require('debounce');
-var addEvent = require('add-event-listener');
-
-function isCanvasContext(obj) {
-    var ctx2d = typeof CanvasRenderingContext2D !== 'undefined' && obj instanceof CanvasRenderingContext2D;
-    return obj && (ctx2d || isGL(obj));
-}
-
-function CanvasApp(render, options) {
-    if (!(this instanceof CanvasApp))
-        return new CanvasApp(render, options);
-
-    //allow options to be passed as first argument
-    if (typeof render === 'object' && render) {
-        options = render;
-        render = null;
-    }
-
-    render = typeof render === 'function' ? render : options.onRender;
-
-    options = options||{};
-    options.retina = typeof options.retina === "boolean" ? options.retina : true;
-    
-    var hasWidth = typeof options.width === "number", 
-        hasHeight = typeof options.height === "number";
-
-    //if either width or height is specified, don't auto-resize to the window...
-    if (hasWidth || hasHeight) 
-        options.ignoreResize = true;
-
-    options.width = hasWidth ? options.width : window.innerWidth;
-    options.height = hasHeight ? options.height : window.innerHeight;
-
-    var DPR = options.retina ? (window.devicePixelRatio||1) : 1; 
-
-    //setup the canvas
-    var canvas,
-        context,
-        attribs = options.contextAttributes||{};
-
-    this.isWebGL = false;
-
-    //if user provided a context object
-    if (isCanvasContext(options.context)) {
-        context = options.context;
-        canvas = context.canvas;
-    }
-
-    //otherwise allow for a string to set one up
-    if (!canvas)
-        canvas = options.canvas || document.createElement("canvas");
-
-    canvas.width = options.width * DPR;
-    canvas.height = options.height * DPR;
-
-    if (!context) {
-        if (options.context === "webgl" || options.context === "experimental-webgl") {
-            context = getGL({ canvas: canvas, attributes: attribs });
-            if (!context) {
-                throw "WebGL Context Not Supported -- try enabling it or using a different browser";
-            }
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
         } else {
-            context = canvas.getContext(options.context||"2d", attribs);
+            cachedSetTimeout = defaultSetTimout;
         }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
     }
-
-    this.isWebGL = isGL(context);
-
-    if (options.retina) {
-        canvas.style.width = options.width + 'px';
-        canvas.style.height = options.height + 'px';
-    }
-
-    this.running = false;
-    this.width = options.width;
-    this.height = options.height;
-    this.canvas = canvas;
-    this.context = context;
-    this.onResize = options.onResize;
-    this._DPR = DPR;
-    this._retina = options.retina;
-    this._once = options.once;
-    this._ignoreResize = options.ignoreResize;
-    this._lastFrame = null;
-    this._then = Date.now();
-    this.maxDeltaTime = typeof options.maxDeltaTime === 'number' ? options.maxDeltaTime : 1000/24;
-
-    //FPS counter
-    this.fps = 60;
-    this._frames = 0;
-    this._prevTime = this._then;
-
-    if (!this._ignoreResize) {
-        options.resizeDebounce = typeof options.resizeDebounce === 'number'
-                    ? options.resizeDebounce : 50;
-        addEvent(window, "resize", debounce(function() {
-            this.resize(window.innerWidth, window.innerHeight);
-        }.bind(this), options.resizeDebounce, false));
-
-        addEvent(window, "orientationchange", function() {
-            this.resize(window.innerWidth, window.innerHeight);
-        }.bind(this));
-    }
-
-    if (typeof render === "function") {
-        this.onRender = render.bind(this);   
-    } else {
-        //dummy render function
-        this.onRender = function (context, width, height, dt) { };
-    }
-
-    this.renderOnce = function() {
-        var now = Date.now();
-        var dt = Math.min(this.maxDeltaTime, (now-this._then));
-
-        this._frames++;
-        if (now > this._prevTime + 1000) {
-            this.fps = Math.round((this._frames * 1000) / (now - this._prevTime));
-
-            this._prevTime = now;
-            this._frames = 0;
-        }
-
-        if (!this.isWebGL) {
-            this.context.save();
-            this.context.scale(this._DPR, this._DPR);
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
         } else {
-            this.context.viewport(0, 0, this.width * this._DPR, this.height * this._DPR);
+            cachedClearTimeout = defaultClearTimeout;
         }
-        
-        this.onRender(this.context, this.width, this.height, dt);
-
-        if (!this.isWebGL)
-            this.context.restore();
-
-        this._then = now;
-    };
-
-    this._renderHandler = function() {
-        if (!this.running) 
-            return;
-        
-        if (!this._once) {
-            this._lastFrame = requestAnimationFrame(this._renderHandler);
-        }
-
-        this.renderOnce();
-    }.bind(this);
-
-    if (typeof options.onReady === "function") {
-        options.onReady.call(this, context, this.width, this.height);
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
     }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
 }
-
-Object.defineProperty(CanvasApp.prototype, 'retinaEnabled', {
-
-    set: function(v) {
-        this._retina = v;
-        this._DPR = this._retina ? (window.devicePixelRatio||1) : 1;
-        this.resize(this.width, this.height);
-    },
-
-    get: function() {
-        return this._retina;
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
     }
-});
-
-Object.defineProperty(CanvasApp.prototype, 'deviceWidth', {
-
-    get: function() {
-        return this.width * this._DPR;
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
     }
-});
-
-Object.defineProperty(CanvasApp.prototype, 'deviceHeight', {
-
-    get: function() {
-        return this.height * this._DPR;
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
     }
-});
 
-CanvasApp.prototype.resetFPS = function() {
-    this._frames = 0;
-    this._prevTime = Date.now();
-    this._then = this._prevTime;
-    this.fps = 60;
-};
 
-CanvasApp.prototype.start = function() {
-    if (this.running)
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
         return;
-    
-    if (this._lastFrame) 
-        cancelAnimationFrame(this._lastFrame);
-
-    //reset FPS counter
-    this.resetFPS();
-
-    this.running = true;
-    this._lastFrame = requestAnimationFrame(this._renderHandler);
-};
-
-CanvasApp.prototype.stop = function() {
-    if (this._lastFrame) {
-        cancelAnimationFrame(this._lastFrame);
-        this._lastFrame = null;
     }
-    this.running = false;
-};
-
-CanvasApp.prototype.resize = function(width, height) {
-    var canvas = this.canvas;
-
-    this.width = width;
-    this.height = height;
-    canvas.width = this.width * this._DPR;
-    canvas.height = this.height * this._DPR;
-
-    if (this._retina) {
-        canvas.style.width = this.width + 'px';
-        canvas.style.height = this.height + 'px';
-    }
-
-    if (this._once)
-        requestAnimationFrame(this._renderHandler);
-    if (typeof this.onResize === "function")
-        this.onResize(this.width, this.height);
-};
-
-module.exports = CanvasApp;
-},{"add-event-listener":33,"debounce":34,"is-webgl-context":36,"webgl-context":37}],33:[function(require,module,exports){
-addEventListener.removeEventListener = removeEventListener
-addEventListener.addEventListener = addEventListener
-
-module.exports = addEventListener
-
-var Events = null
-
-function addEventListener(el, eventName, listener, useCapture) {
-  Events = Events || (
-    document.addEventListener ?
-    {add: stdAttach, rm: stdDetach} :
-    {add: oldIEAttach, rm: oldIEDetach}
-  )
-  
-  return Events.add(el, eventName, listener, useCapture)
-}
-
-function removeEventListener(el, eventName, listener, useCapture) {
-  Events = Events || (
-    document.addEventListener ?
-    {add: stdAttach, rm: stdDetach} :
-    {add: oldIEAttach, rm: oldIEDetach}
-  )
-  
-  return Events.rm(el, eventName, listener, useCapture)
-}
-
-function stdAttach(el, eventName, listener, useCapture) {
-  el.addEventListener(eventName, listener, useCapture)
-}
-
-function stdDetach(el, eventName, listener, useCapture) {
-  el.removeEventListener(eventName, listener, useCapture)
-}
-
-function oldIEAttach(el, eventName, listener, useCapture) {
-  if(useCapture) {
-    throw new Error('cannot useCapture in oldIE')
-  }
-
-  el.attachEvent('on' + eventName, listener)
-}
-
-function oldIEDetach(el, eventName, listener, useCapture) {
-  el.detachEvent('on' + eventName, listener)
-}
-
-},{}],34:[function(require,module,exports){
-
-/**
- * Module dependencies.
- */
-
-var now = require('date-now');
-
-/**
- * Returns a function, that, as long as it continues to be invoked, will not
- * be triggered. The function will be called after it stops being called for
- * N milliseconds. If `immediate` is passed, trigger the function on the
- * leading edge, instead of the trailing.
- *
- * @source underscore.js
- * @see http://unscriptable.com/2009/03/20/debouncing-javascript-methods/
- * @param {Function} function to wrap
- * @param {Number} timeout in ms (`100`)
- * @param {Boolean} whether to execute at the beginning (`false`)
- * @api public
- */
-
-module.exports = function debounce(func, wait, immediate){
-  var timeout, args, context, timestamp, result;
-  if (null == wait) wait = 100;
-
-  function later() {
-    var last = now() - timestamp;
-
-    if (last < wait && last > 0) {
-      timeout = setTimeout(later, wait - last);
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
     } else {
-      timeout = null;
-      if (!immediate) {
-        result = func.apply(context, args);
-        if (!timeout) context = args = null;
-      }
+        queueIndex = -1;
     }
-  };
-
-  return function debounced() {
-    context = this;
-    args = arguments;
-    timestamp = now();
-    var callNow = immediate && !timeout;
-    if (!timeout) timeout = setTimeout(later, wait);
-    if (callNow) {
-      result = func.apply(context, args);
-      context = args = null;
+    if (queue.length) {
+        drainQueue();
     }
+}
 
-    return result;
-  };
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
 };
 
-},{"date-now":35}],35:[function(require,module,exports){
-module.exports = Date.now || now
-
-function now() {
-    return new Date().getTime()
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
 }
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
 
 },{}],36:[function(require,module,exports){
-/*globals WebGL2RenderingContext,WebGLRenderingContext*/
-module.exports = function isWebGLContext (ctx) {
-  if (!ctx) return false
-  var gl = ctx
-
-  // compatibility with Chrome WebGL Inspector Addon
-  if (typeof ctx.rawgl !== 'undefined') {
-    gl = ctx.rawgl
-  }
-  if ((typeof WebGLRenderingContext !== 'undefined' 
-      && gl instanceof WebGLRenderingContext) || 
-    (typeof WebGL2RenderingContext !== 'undefined'
-      && gl instanceof WebGL2RenderingContext)) {
-    return true
-  }
-  return false
-}
-
-},{}],37:[function(require,module,exports){
-module.exports = function(opts) {
-    opts = opts||{};
-    var canvas = opts.canvas || document.createElement("canvas");
-    if (typeof opts.width === "number")
-        canvas.width = opts.width;
-    if (typeof opts.height === "number")
-        canvas.height = opts.height;
-    
-    var attribs = (opts.attributes || opts.attribs || {});
-    try {
-        gl = (canvas.getContext('webgl', attribs) || canvas.getContext('experimental-webgl', attribs));
-    } catch (e) {
-        gl = null;
-    }
-    return gl;
-};
-},{}],38:[function(require,module,exports){
-arguments[4][2][0].apply(exports,arguments)
-},{"dup":2}],39:[function(require,module,exports){
 module.exports = function(THREE) {
     var MOUSE = THREE.MOUSE
     if (!MOUSE)
@@ -6121,28 +6138,92 @@ module.exports = function(THREE) {
     OrbitControls.prototype.constructor = OrbitControls;
     return OrbitControls;
 }
-},{}],40:[function(require,module,exports){
-module.exports = extend
+},{}],37:[function(require,module,exports){
+var createApp = require('canvas-app')
+var createControls = require('three-orbit-controls')
+var Emitter = require('events/')
+var xtend = require('xtend')
+var number = require('as-number')
 
-var hasOwnProperty = Object.prototype.hasOwnProperty;
+module.exports = function(THREE) {
+    var OrbitControls = createControls(THREE)
+    return function(opt) {
+        opt = opt||{}
 
-function extend() {
-    var target = {}
+        var emitter = new Emitter()
 
-    for (var i = 0; i < arguments.length; i++) {
-        var source = arguments[i]
 
-        for (var key in source) {
-            if (hasOwnProperty.call(source, key)) {
-                target[key] = source[key]
-            }
+        var ctxAttrib = opt.contextAttributes || {}
+
+        var setup = function(gl, width, height) {
+            emitter.renderer = new THREE.WebGLRenderer(xtend(ctxAttrib, {
+                canvas: gl.canvas
+            }))
+
+            var clearColor = 0x000000
+            if (opt.clearColor || typeof opt.clearColor === 'number')
+                clearColor = opt.clearColor
+
+            var clearAlpha = opt.clearAlpha||0
+            emitter.renderer.setClearColor(clearColor, clearAlpha)
+
+            var fov = number(opt.fov, 50)
+            var near = number(opt.near, 0.1)
+            var far = number(opt.far, 1000)
+            
+            emitter.scene = new THREE.Scene()
+            emitter.camera = new THREE.PerspectiveCamera(fov, width/height, near, far)
+            
+            var position = opt.position || new THREE.Vector3(1, 1, -2)
+            var target = opt.target || new THREE.Vector3()
+
+            emitter.camera.position.copy(position)
+            emitter.camera.lookAt(target)
+
+            emitter.controls = new OrbitControls(emitter.camera, emitter.engine.canvas)
+            emitter.controls.target.copy(target)
         }
+
+        var render = function(gl, width, height, dt) {
+            emitter.emit('tick', dt)
+            emitter.renderer.render(emitter.scene, emitter.camera)
+            emitter.emit('render', dt)
+        }
+
+        var resize = function(width, height) {
+            if (!emitter.renderer)
+                return
+
+            emitter.renderer.setSize(width, height)
+            emitter.camera.aspect = width/height
+            emitter.camera.updateProjectionMatrix()
+
+            emitter.emit('resize', width, height)
+        }
+
+
+        var engine = createApp(render, xtend(opt, { 
+            context: 'webgl',
+            onResize: resize
+        }))
+        emitter.engine = engine
+        
+        document.body.appendChild(engine.canvas)
+        document.body.style.margin = "0"
+        document.body.style.overflow = "hidden"
+        
+        setup(engine.context, engine.width, engine.height)
+        if (typeof emitter.renderer.setPixelRatio === 'function') //r70
+            emitter.renderer.setPixelRatio(engine._DPR)
+        else if (typeof emitter.renderer.devicePixelRatio === 'number') //r69
+            emitter.renderer.devicePixelRatio = engine._DPR
+        emitter.renderer.setSize(engine.width, engine.height)
+        engine.start()
+
+        return emitter
     }
-
-    return target
 }
-
-},{}],41:[function(require,module,exports){
+},{"as-number":3,"canvas-app":4,"events/":8,"three-orbit-controls":36,"xtend":40}],38:[function(require,module,exports){
 var self = self || {};// File:src/Three.js
 
 /**
@@ -47664,7 +47745,7 @@ if (typeof exports !== 'undefined') {
   this['THREE'] = THREE;
 }
 
-},{}],42:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // a tile is an array [x,y,z]
 var d2r = Math.PI / 180,
     r2d = 180 / Math.PI;
@@ -47855,7 +47936,28 @@ module.exports = {
     pointToTileFraction: pointToTileFraction
 };
 
-},{}],43:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
+module.exports = extend
+
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+function extend() {
+    var target = {}
+
+    for (var i = 0; i < arguments.length; i++) {
+        var source = arguments[i]
+
+        for (var key in source) {
+            if (hasOwnProperty.call(source, key)) {
+                target[key] = source[key]
+            }
+        }
+    }
+
+    return target
+}
+
+},{}],41:[function(require,module,exports){
 module.exports={
   "preset": "Watercolor NY",
   "remembered": {
@@ -47930,7 +48032,7 @@ module.exports={
     }
   }
 }
-},{}],44:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var Emitter = require('events').EventEmitter;
 var tilebelt = require('tilebelt');
 
@@ -47981,4 +48083,4 @@ module.exports = function(canvas, lon, lat, zoom, tileSize, tileCount, tileBase)
 	return emitter;
 }
 
-},{"events":2,"tilebelt":42}]},{},[1]);
+},{"events":8,"tilebelt":39}]},{},[1]);
