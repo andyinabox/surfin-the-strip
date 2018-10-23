@@ -93,7 +93,7 @@ gui.remember(params.text);
 
 
 // hide initially
-gui.domElement.classList.toggle('hidden');
+// gui.domElement.classList.toggle('hidden');
 
 var app = createOrbitViewer({
   clearColor: 0x000000,
